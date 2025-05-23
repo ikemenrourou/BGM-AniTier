@@ -1,0 +1,1033 @@
+/* 评论区基础样式 */
+.comments-section {
+  margin: 40px auto;
+  padding: 0 20px;
+  max-width: 1500px; /* 增加宽度以容纳4个评论 */
+}
+
+/* 评论区标题 */
+.comments-section-title {
+  font-size: 28px;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 评论容器 - Masonry 将处理布局 */
+.comments-container {
+  /* display: grid; (由 Masonry 接管) */
+  /* grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); (由 Masonry 接管) */
+  /* gap: 25px; (由 Masonry 的 gutter 选项处理) */
+  position: relative; /* 确保 Masonry 定位正常 */
+  margin: 0 auto; /* 容器居中 */
+  width: 100%; /* 确保容器占满可用宽度 */
+  box-sizing: border-box; /* 确保padding不会增加总宽度 */
+  text-align: left; /* 改为左对齐，避免居中布局干扰 */
+}
+
+/* 评论卡片通用样式 */
+.comment-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  min-height: 180px; /* 减小最小高度 */
+  width: 320px; /* 增加宽度以提供更多空间 */
+  margin-bottom: 20px; /* 调整Masonry项目之间的垂直间距 */
+  box-sizing: border-box; /* 确保 padding 和 border 不会影响总宽度 */
+  display: flex; /* 使用flex布局 */
+  flex-direction: column; /* 垂直排列 */
+  float: none !important; /* 防止浮动干扰Masonry布局 */
+}
+
+/* 创建磨砂玻璃效果 */
+.comment-glass-content {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background-color: rgba(30, 30, 36, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 18px;
+  flex: 1; /* 填充剩余空间 */
+  display: flex; /* 使用flex布局 */
+  flex-direction: column; /* 垂直排列 */
+  box-sizing: border-box;
+}
+
+/* 悬浮效果 */
+.comment-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* 动画标题通用样式 */
+.comment-anime-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  text-align: center; /* 居中对齐 */
+}
+
+/* 评论文本容器 */
+.comment-text-container {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 15px;
+  display: flex; /* 使用flex布局 */
+  flex-direction: column; /* 垂直排列 */
+  justify-content: flex-start; /* 从顶部开始 */
+}
+
+.comment-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  overflow-wrap: break-word; /* 帮助长单词或链接正确换行 */
+  width: 100%; /* 确保文本宽度为100% */
+}
+
+/* 卡片类型1: 右侧占满图片 */
+.card-type-1 .comment-glass-content {
+  padding: 0; /* 移除内边距，确保图片能够完全占据右侧 */
+  overflow: hidden; /* 确保内容不会溢出 */
+}
+
+.card-type-1 .comment-split-layout-right {
+  display: flex;
+  height: 100%;
+  align-items: stretch;
+  position: relative; /* 确保子元素的绝对定位相对于此元素 */
+}
+
+.card-type-1 .comment-text-side {
+  width: calc(100% - 100px); /* 减小图片宽度，增加文本区域 */
+  padding: 18px; /* 恢复原来的内边距 */
+  padding-right: 12px; /* 右侧减少一些内边距，与图片保持距离 */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* 从顶部开始布局 */
+  min-width: 0; /* 防止内容溢出时被挤压 */
+  box-sizing: border-box; /* 确保内边距不会增加宽度 */
+}
+
+.card-type-1 .comment-anime-cover-right {
+  width: 100px; /* 减小图片宽度 */
+  height: 100%;
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: 0;
+  border-radius: 0;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.card-type-1 .comment-anime-cover-right img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.card-type-1:hover .comment-anime-cover-right img {
+  transform: scale(1.05);
+}
+
+.card-type-1 .comment-anime-title {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+/* 卡片类型2: 大封面在上，标题和评论在下 */
+.card-type-2 .comment-anime-cover-large {
+  width: 100%;
+  height: 180px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.card-type-2 .comment-anime-cover-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.card-type-2:hover .comment-anime-cover-large img {
+  transform: scale(1.05);
+}
+
+.card-type-2 .comment-anime-title.centered {
+  text-align: center;
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+/* 卡片类型3: 封面作为背景，内容覆盖 */
+.card-type-3 {
+  position: relative;
+}
+
+.card-type-3 .comment-background-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.card-type-3 .comment-background-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.4) blur(1px);
+  transition: all 0.3s ease;
+}
+
+.card-type-3:hover .comment-background-image img {
+  filter: brightness(0.3) blur(0px);
+  transform: scale(1.05);
+}
+
+.card-type-3 .comment-overlay-content {
+  position: relative;
+  z-index: 2;
+  padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.card-type-3 .comment-anime-title {
+  font-size: 22px;
+  margin-bottom: 15px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.card-type-3 .comment-text-container.transparent {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* 卡片类型4: 圆角矩形封面 */
+.card-type-4 .comment-glass-content {
+  padding: 15px; /* 减少内边距 */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-type-4 .comment-header {
+  display: flex;
+  gap: 15px;
+  height: auto; /* 自适应高度 */
+  min-height: 150px; /* 最小高度与图片一致 */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-type-4 .comment-anime-cover-rounded {
+  width: 100px; /* 缩小宽度 */
+  min-width: 100px; /* 缩小最小宽度 */
+  height: 150px; /* 缩小高度 */
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0; /* 防止图片被压缩 */
+}
+
+.card-type-4 .comment-anime-cover-rounded img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.card-type-4:hover .comment-anime-cover-rounded img {
+  transform: scale(1.08);
+}
+
+.card-type-4 .comment-header-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column; /* 允许标题和文本容器垂直排列 */
+  min-width: 0; /* 防止内容溢出，这很重要！ */
+  overflow: hidden; /* 防止内容溢出 */
+  width: calc(100% - 130px); /* 基于新的卡片宽度重新计算：320px - 100px图片 - 15px间距 - 15px左右内边距 */
+  box-sizing: border-box;
+}
+
+.card-type-4 .comment-text-container {
+  /* 特定于 card-type-4 的文本容器 */
+  background-color: transparent;
+  padding: 5px 0 0 0; /* 移除大部分padding，顶部留一点 */
+  border-radius: 0;
+  flex-grow: 1; /* 填充剩余空间 */
+  min-width: 0; /* 防止内容溢出，这很重要！ */
+  overflow: hidden; /* 防止内容溢出 */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-type-4 .comment-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  overflow-wrap: break-word; /* 帮助长单词或链接正确换行 */
+  word-wrap: break-word; /* 兼容性 */
+  word-break: break-word; /* 强制换行 */
+  white-space: normal; /* 确保允许换行 */
+  width: 100%; /* 确保文本宽度为100% */
+  max-width: 100%; /* 确保不会超出容器 */
+  hyphens: auto; /* 自动断字 */
+}
+
+/* 卡片类型5: 卡片式设计 */
+.card-type-5 .comment-card-design {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.card-type-5 .comment-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.card-type-5 .comment-anime-mini-cover {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-right: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-type-5 .comment-anime-mini-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.card-type-5:hover .comment-anime-mini-cover img {
+  transform: scale(1.1);
+}
+
+.card-type-5 .comment-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+  margin-bottom: 15px;
+}
+
+.card-type-5 .comment-text-container.card-style {
+  flex: 1;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 卡片类型6: 底部占满图片 */
+.card-type-6 .comment-glass-content {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.card-type-6 .comment-top-content {
+  padding-bottom: 15px;
+}
+
+.card-type-6 .comment-anime-cover-bottom {
+  width: calc(100% + 36px);
+  height: 150px; /* 增加图片容器高度 */
+  margin-left: -18px;
+  margin-right: -18px;
+  overflow: hidden;
+  margin-top: auto;
+}
+
+.card-type-6 .comment-anime-cover-bottom img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  transition: transform 0.3s ease;
+}
+
+.card-type-6:hover .comment-anime-cover-bottom img {
+  transform: scale(1.08);
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .comment-card {
+    width: 300px; /* 在较小屏幕上适当减小宽度 */
+  }
+}
+
+@media (max-width: 768px) {
+  .comment-card {
+    width: 320px; /* 中等屏幕上保持较大宽度 */
+  }
+
+  .comments-container {
+    text-align: center; /* 在小屏幕上居中对齐 */
+  }
+}
+
+@media (max-width: 480px) {
+  .comment-card {
+    width: 100%; /* 在小屏幕上使卡片宽度为100% */
+    max-width: 350px; /* 增加最大宽度限制 */
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* 标签云区域样式 */
+.tag-cloud-section {
+  margin: 40px auto;
+  padding: 0 20px;
+  max-width: 1500px;
+}
+
+.section-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+  gap: 15px;
+  flex-direction: column;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 28px;
+  color: #ffffff;
+  text-align: center;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.tag-cloud-wrapper {
+  background-color: rgba(30, 30, 36, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.main-tag-cloud-container {
+  width: 100%;
+  text-align: center;
+  padding: 10px;
+  min-height: 150px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
+.tag-cloud-loading,
+.tag-cloud-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  gap: 15px;
+  padding: 20px 0;
+}
+
+.tag-cloud-loading i,
+.tag-cloud-placeholder i {
+  font-size: 24px;
+  color: rgba(100, 100, 255, 0.8);
+}
+
+.tag-cloud-placeholder p {
+  margin: 5px 0;
+  text-align: center;
+}
+
+.tag-cloud-note {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.load-tag-cloud-btn {
+  background-color: rgba(100, 100, 255, 0.8);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.load-tag-cloud-btn:hover {
+  background-color: rgba(120, 120, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.load-tag-cloud-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 标签样式 */
+.main-tag {
+  display: inline-block;
+  padding: 6px 12px;
+  margin: 5px;
+  border-radius: 30px;
+  background-color: rgba(60, 60, 80, 0.6);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.main-tag:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 标签大小变化 */
+.main-tag[data-size='1'] {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.main-tag[data-size='2'] {
+  font-size: 13px;
+  opacity: 0.75;
+}
+.main-tag[data-size='3'] {
+  font-size: 14px;
+  opacity: 0.8;
+}
+.main-tag[data-size='4'] {
+  font-size: 15px;
+  opacity: 0.85;
+}
+.main-tag[data-size='5'] {
+  font-size: 16px;
+  opacity: 0.9;
+}
+.main-tag[data-size='6'] {
+  font-size: 18px;
+  opacity: 0.93;
+}
+.main-tag[data-size='7'] {
+  font-size: 20px;
+  opacity: 0.95;
+}
+.main-tag[data-size='8'] {
+  font-size: 22px;
+  opacity: 0.97;
+}
+.main-tag[data-size='9'] {
+  font-size: 24px;
+  opacity: 0.98;
+}
+.main-tag[data-size='10'] {
+  font-size: 26px;
+  opacity: 1;
+}
+
+/* 标签颜色变化 */
+.main-tag[data-size='1'] {
+  background-color: rgba(60, 60, 80, 0.6);
+}
+.main-tag[data-size='2'] {
+  background-color: rgba(70, 70, 90, 0.6);
+}
+.main-tag[data-size='3'] {
+  background-color: rgba(80, 80, 100, 0.6);
+}
+.main-tag[data-size='4'] {
+  background-color: rgba(90, 90, 110, 0.6);
+}
+.main-tag[data-size='5'] {
+  background-color: rgba(100, 100, 120, 0.6);
+}
+.main-tag[data-size='6'] {
+  background-color: rgba(100, 100, 150, 0.65);
+}
+.main-tag[data-size='7'] {
+  background-color: rgba(100, 100, 180, 0.7);
+}
+.main-tag[data-size='8'] {
+  background-color: rgba(100, 100, 210, 0.75);
+}
+.main-tag[data-size='9'] {
+  background-color: rgba(100, 100, 240, 0.8);
+}
+.main-tag[data-size='10'] {
+  background-color: rgba(100, 100, 255, 0.85);
+}
+
+/* 添加评论按钮 */
+.add-comment-button {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: rgba(100, 100, 255, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.add-comment-button:hover {
+  transform: scale(1.1) rotate(5deg);
+  background-color: rgba(120, 120, 255, 0.9);
+  box-shadow: 0 6px 20px rgba(80, 80, 255, 0.4);
+}
+
+/* 右键菜单样式 - 毛玻璃效果 */
+.context-menu {
+  position: fixed;
+  z-index: 10000;
+  background-color: rgba(30, 30, 36, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 8px 0;
+  min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: none;
+  animation: menu-appear 0.25s cubic-bezier(0.2, 0.9, 0.4, 1);
+}
+
+@keyframes menu-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.context-menu-item {
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.context-menu-item:hover {
+  background-color: rgba(100, 100, 255, 0.15);
+}
+
+.context-menu-item i {
+  margin-right: 10px;
+  font-size: 14px;
+  color: rgba(100, 100, 255, 0.9);
+}
+
+.context-menu-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.08);
+  margin: 5px 0;
+}
+
+.context-menu-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.context-menu-item.disabled:hover {
+  background-color: transparent;
+}
+
+/* 评论对话框样式 - 与添加动画界面风格一致 */
+#comment-dialog {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* 与search-panel一致 */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+}
+
+#comment-dialog.active {
+  display: flex;
+  opacity: 1;
+}
+
+#comment-dialog .export-dialog-content {
+  max-width: 600px; /* 与search-content一致 */
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  background-color: rgba(0, 0, 0, 0.5); /* 与search-content一致 */
+  border: none; /* 移除边框 */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: 15px;
+  padding: 20px;
+  position: relative;
+  color: white;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: fadeIn 0.4s ease-out;
+}
+
+#comment-dialog .export-dialog-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#comment-dialog .export-dialog-title {
+  margin-top: 0;
+  color: #fff;
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 评论对话框头部 */
+.comment-dialog-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comment-dialog-cover {
+  width: 120px;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comment-dialog-cover img {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.comment-dialog-cover:hover img {
+  transform: scale(1.05);
+}
+
+.comment-dialog-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 10px;
+  font-size: 16px;
+  color: #ffffff;
+  line-height: 1.4;
+  word-break: break-word;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+  text-align: center;
+}
+
+.comment-input-container {
+  margin-bottom: 25px;
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.comment-input-container label {
+  display: block;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.comment-textarea {
+  width: 100%;
+  min-height: 140px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 15px;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.comment-textarea:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.comment-style-selector {
+  margin-top: 20px;
+  background-color: rgba(30, 30, 50, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.comment-style-selector label {
+  display: block;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.comment-style-container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin: 0 auto;
+}
+
+.comment-style-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.comment-style-option i {
+  font-size: 16px;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+}
+
+.comment-style-option span {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.comment-style-option:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.comment-style-option.active {
+  background-color: #3d3d6e; /* 蓝紫色，与添加动画界面按钮一致 */
+  border-color: #3d3d6e;
+  font-weight: bold;
+}
+
+.comment-style-option.active i,
+.comment-style-option.active span {
+  color: #fff;
+}
+
+/* 随机样式选项特殊样式 */
+.comment-style-option.random-style {
+  background: linear-gradient(135deg, rgba(61, 61, 110, 0.6), rgba(77, 58, 110, 0.6));
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.comment-style-option.random-style:hover {
+  background: linear-gradient(135deg, rgba(61, 61, 110, 0.7), rgba(77, 58, 110, 0.7));
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.comment-style-option.random-style.active {
+  background: linear-gradient(135deg, rgba(61, 61, 110, 0.9), rgba(77, 58, 110, 0.9));
+  border-color: rgba(100, 100, 255, 0.5);
+}
+
+/* 评论卡片操作按钮 */
+.comment-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.comment-card:hover .comment-actions {
+  opacity: 1;
+}
+
+.edit-comment-btn,
+.delete-comment-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-comment-btn:hover {
+  background-color: rgba(100, 100, 255, 0.8);
+  transform: scale(1.1);
+}
+
+.delete-comment-btn:hover {
+  background-color: rgba(255, 50, 50, 0.8);
+  transform: scale(1.1);
+}
+
+/* 添加评论按钮样式 */
+.add-comment-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(100, 100, 255, 0.9), rgba(80, 80, 220, 0.9));
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3), 0 0 0 5px rgba(100, 100, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.add-comment-button i {
+  font-size: 24px;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.add-comment-button:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 0 8px rgba(100, 100, 255, 0.3);
+}
+
+.add-comment-button:active {
+  transform: scale(0.95);
+}
+
+.add-comment-button .tooltip {
+  position: absolute;
+  top: -40px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.add-comment-button .tooltip:after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(0, 0, 0, 0.8);
+}
+
+.add-comment-button:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+  top: -45px;
+}

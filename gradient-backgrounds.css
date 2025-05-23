@@ -1,0 +1,781 @@
+/* 渐变背景主题库 - 参考大厂热门设计 */
+
+/* 基础渐变容器 */
+.gradient-background {
+  transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+  background-attachment: fixed;
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  position: relative;
+}
+
+/* 渐变动画 */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ==== 大厂风格渐变主题 ==== */
+
+/* 1. 深蓝夜空 - 与原项目完全一致的颜色 */
+.gradient-deep-blue {
+  background: linear-gradient(
+    135deg,
+    #0a0a2a,
+    /* 深蓝色起点 */ #0f1a4d,
+    /* 深蓝紫色 */ #1e3a6e,
+    /* 中蓝色 */ #2a4580,
+    /* 亮蓝色 */ #3d3d6e,
+    /* 蓝紫色 */ #4d3a6e /* 紫色结束点 */
+  );
+  background-attachment: fixed; /* 固定背景，防止滚动时移动 */
+}
+
+/* 2. 极光紫 - Discord/Figma风格 */
+.gradient-aurora {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+}
+
+/* 3. 樱花粉 - Instagram风格 */
+.gradient-sakura {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 25%, #ff9a9e 50%, #fecfef 75%, #fecfef 100%);
+}
+
+/* 4. 霓虹夜景 - Spotify/Netflix风格 */
+.gradient-neon {
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 25%, #24243e 50%, #ff006e 75%, #8338ec 100%);
+}
+
+/* 5. 海洋深蓝 - Twitter风格 */
+.gradient-ocean {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #00c6ff 50%, #0072ff 75%, #1e3c72 100%);
+}
+
+/* 6. 黄金时光 - Apple风格 */
+.gradient-golden {
+  background: linear-gradient(135deg, #f7971e 0%, #ffd200 25%, #ffb347 50%, #ff8c42 75%, #f7931e 100%);
+}
+
+/* 7. 翡翠绿野 - Spotify绿 */
+.gradient-emerald {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 25%, #4ecdc4 50%, #44a08d 75%, #093637 100%);
+}
+
+/* 8. 宇宙星辰 - GitHub暗色主题风格 */
+.gradient-cosmic {
+  background: linear-gradient(135deg, #0c0c0c 0%, #161b22 25%, #21262d 50%, #30363d 75%, #484f58 100%);
+}
+
+/* 9. 薰衣草 - Pinterest风格 */
+.gradient-lavender {
+  background: linear-gradient(135deg, #ee9ca7 0%, #ffdde1 25%, #c471ed 50%, #f64f59 75%, #ee9ca7 100%);
+}
+
+/* 10. 深紫神秘 - Notion风格 */
+.gradient-mystic {
+  background: linear-gradient(135deg, #2d1b69 0%, #11998e 25%, #38ef7d 50%, #667eea 75%, #764ba2 100%);
+}
+
+/* 11. 钢铁机械 - VS Code风格 */
+.gradient-steel {
+  background: linear-gradient(135deg, #232526 0%, #414345 25%, #636363 50%, #a8a8a8 75%, #232526 100%);
+}
+
+/* 12. 薄荷清新 - Mint Mobile风格 */
+.gradient-mint {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 25%, #dcedc1 50%, #a8e6cf 75%, #56ab2f 100%);
+}
+
+/* 13. 火山岩浆 - YouTube风格 */
+.gradient-volcano {
+  background: linear-gradient(135deg, #ff4b1f 0%, #ff9068 25%, #ff6b35 50%, #f7931e 75%, #ff4b1f 100%);
+}
+
+/* 14. 水晶冰雪 - Windows 11风格 */
+.gradient-crystal {
+  background: linear-gradient(135deg, #e6f3ff 0%, #b3d9ff 25%, #80bfff 50%, #4da6ff 75%, #1a8cff 100%);
+}
+
+/* 15. 光谱彩虹 - Google风格 */
+.gradient-spectrum {
+  background: linear-gradient(
+    135deg,
+    #ff6b6b 0%,
+    #ffa726 14%,
+    #ffeb3b 28%,
+    #66bb6a 42%,
+    #42a5f5 56%,
+    #ab47bc 70%,
+    #ff6b6b 100%
+  );
+}
+
+/* 16. 暗影深渊 - Dark mode风格 */
+.gradient-shadow {
+  background: linear-gradient(135deg, #000000 0%, #1c1c1c 25%, #383838 50%, #2c2c2c 75%, #000000 100%);
+}
+
+/* 17. 玫瑰金 - Instagram Stories风格 */
+.gradient-rose-gold {
+  background: linear-gradient(135deg, #f7797d 0%, #fbd786 25%, #c6ffdd 50%, #fbd786 75%, #f7797d 100%);
+}
+
+/* 18. 极光北欧 - Dribbble风格 */
+.gradient-nordic {
+  background: linear-gradient(135deg, #667db6 0%, #0082c8 25%, #0082c8 50%, #667db6 75%, #667db6 100%);
+}
+
+/* 19. 赛博朋克 - Cyberpunk 2077风格 */
+.gradient-cyberpunk {
+  background: linear-gradient(135deg, #0f3460 0%, #16537e 25%, #ff006e 50%, #fb8500 75%, #8338ec 100%);
+}
+
+/* 20. 夕阳西下 - Sunset风格 */
+.gradient-sunset {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 25%, #fa709a 50%, #fee140 75%, #fa709a 100%);
+}
+
+/* ==== 渐变选择器样式 ==== */
+
+.gradient-selection,
+.gradient-selection-full {
+  margin-top: 15px;
+}
+
+.gradient-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gradient-mini-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+
+.gradient-mini-preview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.gradient-mini-preview:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.gradient-mini-preview.active {
+  border-color: #fff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+  transform: scale(1.1);
+}
+
+/* 为每个预览添加对应的渐变 */
+.gradient-mini-preview.gradient-deep-blue::before {
+  background: linear-gradient(
+    135deg,
+    #0a0a2a,
+    /* 深蓝色起点 */ #0f1a4d,
+    /* 深蓝紫色 */ #1e3a6e,
+    /* 中蓝色 */ #2a4580,
+    /* 亮蓝色 */ #3d3d6e,
+    /* 蓝紫色 */ #4d3a6e /* 紫色结束点 */
+  );
+}
+.gradient-mini-preview.gradient-aurora::before {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+}
+.gradient-mini-preview.gradient-sakura::before {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 25%, #ff9a9e 50%, #fecfef 75%, #fecfef 100%);
+}
+.gradient-mini-preview.gradient-neon::before {
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 25%, #24243e 50%, #ff006e 75%, #8338ec 100%);
+}
+.gradient-mini-preview.gradient-ocean::before {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #00c6ff 50%, #0072ff 75%, #1e3c72 100%);
+}
+.gradient-mini-preview.gradient-golden::before {
+  background: linear-gradient(135deg, #f7971e 0%, #ffd200 25%, #ffb347 50%, #ff8c42 75%, #f7931e 100%);
+}
+.gradient-mini-preview.gradient-emerald::before {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 25%, #4ecdc4 50%, #44a08d 75%, #093637 100%);
+}
+.gradient-mini-preview.gradient-cosmic::before {
+  background: linear-gradient(135deg, #0c0c0c 0%, #161b22 25%, #21262d 50%, #30363d 75%, #484f58 100%);
+}
+.gradient-mini-preview.gradient-lavender::before {
+  background: linear-gradient(135deg, #ee9ca7 0%, #ffdde1 25%, #c471ed 50%, #f64f59 75%, #ee9ca7 100%);
+}
+.gradient-mini-preview.gradient-mystic::before {
+  background: linear-gradient(135deg, #2d1b69 0%, #11998e 25%, #38ef7d 50%, #667eea 75%, #764ba2 100%);
+}
+.gradient-mini-preview.gradient-steel::before {
+  background: linear-gradient(135deg, #232526 0%, #414345 25%, #636363 50%, #a8a8a8 75%, #232526 100%);
+}
+.gradient-mini-preview.gradient-mint::before {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 25%, #dcedc1 50%, #a8e6cf 75%, #56ab2f 100%);
+}
+.gradient-mini-preview.gradient-volcano::before {
+  background: linear-gradient(135deg, #ff4b1f 0%, #ff9068 25%, #ff6b35 50%, #f7931e 75%, #ff4b1f 100%);
+}
+.gradient-mini-preview.gradient-crystal::before {
+  background: linear-gradient(135deg, #e6f3ff 0%, #b3d9ff 25%, #80bfff 50%, #4da6ff 75%, #1a8cff 100%);
+}
+.gradient-mini-preview.gradient-spectrum::before {
+  background: linear-gradient(
+    135deg,
+    #ff6b6b 0%,
+    #ffa726 14%,
+    #ffeb3b 28%,
+    #66bb6a 42%,
+    #42a5f5 56%,
+    #ab47bc 70%,
+    #ff6b6b 100%
+  );
+}
+.gradient-mini-preview.gradient-shadow::before {
+  background: linear-gradient(135deg, #000000 0%, #1c1c1c 25%, #383838 50%, #2c2c2c 75%, #000000 100%);
+}
+.gradient-mini-preview.gradient-rose-gold::before {
+  background: linear-gradient(135deg, #f7797d 0%, #fbd786 25%, #c6ffdd 50%, #fbd786 75%, #f7797d 100%);
+}
+.gradient-mini-preview.gradient-nordic::before {
+  background: linear-gradient(135deg, #667db6 0%, #0082c8 25%, #0082c8 50%, #667db6 75%, #667db6 100%);
+}
+.gradient-mini-preview.gradient-cyberpunk::before {
+  background: linear-gradient(135deg, #0f3460 0%, #16537e 25%, #ff006e 50%, #fb8500 75%, #8338ec 100%);
+}
+.gradient-mini-preview.gradient-sunset::before {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 25%, #fa709a 50%, #fee140 75%, #fa709a 100%);
+}
+
+/* ==== 快速主题预设按钮 ==== */
+.quick-theme-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.quick-theme-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quick-theme-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+.quick-theme-btn i {
+  font-size: 10px;
+}
+
+.quick-theme-btn.random {
+  background: rgba(100, 100, 255, 0.15);
+  border-color: rgba(100, 100, 255, 0.3);
+}
+
+.quick-theme-btn.random:hover {
+  background: rgba(100, 100, 255, 0.25);
+  border-color: rgba(100, 100, 255, 0.4);
+}
+
+/* ==== 粒子效果 ==== */
+.particles-effect {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.6;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: float 6s infinite linear;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* ==== 光晕效果 ==== */
+.glow-effect {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.3;
+}
+
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  animation: glow-float 8s infinite ease-in-out;
+}
+
+@keyframes glow-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+/* ==== 响应式设计 ==== */
+@media (max-width: 768px) {
+  .gradient-mini-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .gradient-mini-preview {
+    width: 28px;
+    height: 28px;
+  }
+
+  .quick-theme-buttons {
+    gap: 4px;
+  }
+
+  .quick-theme-btn {
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .background-settings-panel {
+    right: 15px;
+    width: calc(100vw - 30px);
+    max-width: 350px;
+    top: 70px;
+  }
+
+  .background-settings-container {
+    right: 70px;
+    top: 15px;
+  }
+
+  .background-settings-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .background-settings-btn i {
+    font-size: 16px;
+  }
+}
+
+/* ==== 滚动条样式 ==== */
+.gradient-mini-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gradient-mini-grid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.gradient-mini-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.gradient-mini-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* ==== 滑块样式 ==== */
+
+/* 模糊强度滑块样式 */
+.blur-strength {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.blur-strength .settings-option-label {
+  min-width: 80px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
+.blur-slider {
+  flex: 1;
+  height: 6px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3));
+  border-radius: 3px;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.blur-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(45deg, #6c7ce0, #a855f7);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.blur-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+.blur-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(45deg, #6c7ce0, #a855f7);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.blur-value {
+  min-width: 50px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+/* ==== 特效系统样式优化 ==== */
+
+.gradient-effects {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 15px;
+}
+
+.gradient-effects .settings-option {
+  margin-bottom: 12px;
+}
+
+.gradient-effects .settings-option:last-child {
+  margin-bottom: 0;
+}
+
+/* ==== 主题切换动画优化 ==== */
+
+.gradient-background {
+  animation-duration: 20s; /* 加长动画时间 */
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .gradient-mini-preview {
+    border: 2px solid #fff;
+  }
+
+  .gradient-mini-preview.active {
+    border-width: 3px;
+  }
+
+  .quick-theme-btn {
+    border: 2px solid rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* 减动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+  .gradient-background {
+    animation: none;
+  }
+
+  .gradient-mini-preview::before {
+    animation: none;
+  }
+
+  .particle {
+    animation: none;
+  }
+
+  .glow-orb {
+    animation: none;
+  }
+}
+
+/* ==== 背景设置独立面板样式 ==== */
+
+/* 背景设置按钮容器 */
+.background-settings-container {
+  position: fixed;
+  top: 20px;
+  right: 80px;
+  z-index: 900;
+}
+
+/* 背景设置按钮 */
+.background-settings-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: rgba(15, 26, 77, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.background-settings-btn:hover {
+  background-color: rgba(30, 58, 110, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+.background-settings-btn i {
+  font-size: 20px;
+}
+
+/* 背景设置面板 */
+.background-settings-panel {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 380px;
+  max-height: 75vh;
+  background: rgba(20, 20, 30, 0.95);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 950;
+  transform: scale(0.8) translateY(-10px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.background-settings-panel.active {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.background-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.background-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.background-panel-header h3 i {
+  margin-right: 10px;
+  color: rgba(100, 100, 255, 0.8);
+}
+
+.background-panel-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.background-panel-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.background-panel-content {
+  padding: 20px 25px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* 背景设置分区样式 */
+.background-section {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.background-section:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.background-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.background-section-title i {
+  color: rgba(100, 100, 255, 0.8);
+  font-size: 14px;
+}
+
+/* ==== 设置面板基础样式优化 ==== */
+
+/* 重写原有设置面板的高度限制 */
+.settings-menu-panel {
+  max-height: 85vh !important; /* 限制最大高度为85%视口高度 */
+  overflow-y: auto !important; /* 添加滚动条 */
+  padding: 15px 0 !important; /* 调整内边距 */
+}
+
+/* 优化滚动条样式 */
+.settings-menu-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-menu-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.settings-menu-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.settings-menu-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 原有设置节的样式调整 */
+.settings-section {
+  padding: 0 15px 15px 15px;
+}
+
+.settings-section:first-child {
+  padding-top: 0;
+}
+
+.settings-section:last-child {
+  padding-bottom: 5px;
+}
+
+/* 自定义背景容器样式优化 */
+.bg-upload-container {
+  margin-top: 10px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 背景面板滚动条样式 */
+.background-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.background-panel-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.background-panel-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.background-panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

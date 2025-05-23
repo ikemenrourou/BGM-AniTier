@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的动画 Tier List</title>
+    <link rel="stylesheet" href="my-tier-list.css" />
+    <link rel="stylesheet" href="style-options.css" />
+    <link rel="stylesheet" href="gradient-backgrounds.css" />
+    <link rel="stylesheet" href="comments-styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
+    <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
+  </head>
+  <body>
+    <!-- 毛玻璃效果层 -->
+    <div id="glassmorphism-layer" class="glassmorphism-layer"></div>
+
+    <!-- 自定义标题区域 -->
+    <div class="custom-title-container">
+      <h1 id="custom-title" class="custom-title">我的动画 Tier List</h1>
+      <button id="edit-title-btn" class="edit-title-btn">
+        <i class="fas fa-edit"></i>
+      </button>
+    </div>
+
+    <!-- 统一设置菜单按钮 -->
+    <div class="settings-menu-container">
+      <button id="settings-menu-btn" class="settings-menu-btn">
+        <i class="fas fa-cog"></i>
+      </button>
+
+      <!-- 背景设置按钮 -->
+      <div class="background-settings-container">
+        <button id="background-settings-btn" class="background-settings-btn" title="背景与主题设置">
+          <i class="fas fa-palette"></i>
+        </button>
+      </div>
+
+      <!-- 设置菜单面板 -->
+      <div id="settings-menu-panel" class="settings-menu-panel">
+        <div class="settings-section">
+          <h3 class="settings-section-title">显示选项</h3>
+          <div class="settings-option">
+            <span class="settings-option-label">显示动画标题</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="title-display-toggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="settings-section-title">导出与分享</h3>
+          <div class="export-options">
+            <button id="export-image-btn" class="export-btn">
+              <i class="fas fa-image"></i>
+              <span>导出为图片</span>
+            </button>
+            <button id="export-json-btn" class="export-btn">
+              <i class="fas fa-file-export"></i>
+              <span>导出数据</span>
+            </button>
+            <button id="import-json-btn" class="export-btn">
+              <i class="fas fa-file-import"></i>
+              <span>导入数据</span>
+            </button>
+            <button id="share-link-btn" class="export-btn">
+              <i class="fas fa-share-alt"></i>
+              <span>生成分享链接</span>
+            </button>
+            <input type="file" id="import-file-input" accept=".json" style="display: none" />
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="settings-section-title">Tier管理 <span class="settings-subtitle">(分数细化)</span></h3>
+          <div class="tier-dropdown-list">
+            <!-- 这里的内容将由JavaScript动态生成 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 背景设置面板 -->
+      <div id="background-settings-panel" class="background-settings-panel">
+        <div class="background-panel-header">
+          <h3><i class="fas fa-palette"></i> 背景与主题设置</h3>
+          <button class="background-panel-close" onclick="closeBackgroundPanel()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="background-panel-content">
+          <!-- 渐变主题选择 -->
+          <div class="background-section">
+            <h4 class="background-section-title"><i class="fas fa-fill-drip"></i> 渐变主题</h4>
+            <div class="gradient-selection-full">
+              <div class="gradient-mini-grid">
+                <div
+                  class="gradient-mini-preview gradient-deep-blue active"
+                  data-gradient="deep-blue"
+                  title="深蓝夜空"
+                ></div>
+                <div class="gradient-mini-preview gradient-aurora" data-gradient="aurora" title="极光紫"></div>
+                <div class="gradient-mini-preview gradient-sakura" data-gradient="sakura" title="樱花粉"></div>
+                <div class="gradient-mini-preview gradient-neon" data-gradient="neon" title="霓虹夜景"></div>
+                <div class="gradient-mini-preview gradient-ocean" data-gradient="ocean" title="海洋深蓝"></div>
+                <div class="gradient-mini-preview gradient-golden" data-gradient="golden" title="黄金时光"></div>
+                <div class="gradient-mini-preview gradient-emerald" data-gradient="emerald" title="翡翠绿野"></div>
+                <div class="gradient-mini-preview gradient-cosmic" data-gradient="cosmic" title="宇宙星辰"></div>
+                <div class="gradient-mini-preview gradient-lavender" data-gradient="lavender" title="薰衣草"></div>
+                <div class="gradient-mini-preview gradient-mystic" data-gradient="mystic" title="深紫神秘"></div>
+                <div class="gradient-mini-preview gradient-steel" data-gradient="steel" title="钢铁机械"></div>
+                <div class="gradient-mini-preview gradient-mint" data-gradient="mint" title="薄荷清新"></div>
+                <div class="gradient-mini-preview gradient-volcano" data-gradient="volcano" title="火山岩浆"></div>
+                <div class="gradient-mini-preview gradient-crystal" data-gradient="crystal" title="水晶冰雪"></div>
+                <div class="gradient-mini-preview gradient-spectrum" data-gradient="spectrum" title="光谱彩虹"></div>
+                <div class="gradient-mini-preview gradient-shadow" data-gradient="shadow" title="暗影深渊"></div>
+                <div class="gradient-mini-preview gradient-rose-gold" data-gradient="rose-gold" title="玫瑰金"></div>
+                <div class="gradient-mini-preview gradient-nordic" data-gradient="nordic" title="极光北欧"></div>
+                <div class="gradient-mini-preview gradient-cyberpunk" data-gradient="cyberpunk" title="赛博朋克"></div>
+                <div class="gradient-mini-preview gradient-sunset" data-gradient="sunset" title="夕阳西下"></div>
+              </div>
+
+              <!-- 快速主题预设 -->
+              <div class="quick-theme-buttons">
+                <button
+                  class="quick-theme-btn"
+                  onclick="gradientController.applyPreset('anime-night')"
+                  title="极光紫 + 粒子 + 光晕"
+                >
+                  <i class="fas fa-star"></i>
+                  动漫之夜
+                </button>
+                <button
+                  class="quick-theme-btn"
+                  onclick="gradientController.applyPreset('cyberpunk-city')"
+                  title="霓虹夜景 + 粒子"
+                >
+                  <i class="fas fa-robot"></i>
+                  赛博朋克
+                </button>
+                <button
+                  class="quick-theme-btn"
+                  onclick="gradientController.applyPreset('peaceful-nature')"
+                  title="翡翠绿野 + 光晕"
+                >
+                  <i class="fas fa-leaf"></i>
+                  自然宁静
+                </button>
+                <button
+                  class="quick-theme-btn"
+                  onclick="gradientController.applyPreset('minimal-focus')"
+                  title="暗影深渊"
+                >
+                  <i class="fas fa-circle"></i>
+                  极简专注
+                </button>
+                <button
+                  class="quick-theme-btn random"
+                  onclick="gradientController.randomTheme()"
+                  title="随机主题和效果"
+                >
+                  <i class="fas fa-dice"></i>
+                  随机主题
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 视觉特效 -->
+          <div class="background-section">
+            <h4 class="background-section-title"><i class="fas fa-magic"></i> 视觉特效</h4>
+            <div class="settings-option">
+              <span class="settings-option-label">粒子效果</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="particles-effect-toggle" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="settings-option">
+              <span class="settings-option-label">光晕效果</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="glow-effect-toggle" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 自定义背景 -->
+          <div class="background-section">
+            <h4 class="background-section-title"><i class="fas fa-image"></i> 自定义背景</h4>
+            <div class="settings-option">
+              <span class="settings-option-label">使用自定义背景</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="custom-bg-toggle" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="bg-upload-container" style="display: none">
+              <div class="bg-preview">
+                <div class="preview-placeholder">
+                  <i class="fas fa-image"></i>
+                  <p>背景预览</p>
+                </div>
+              </div>
+              <div class="bg-controls">
+                <label for="bg-file-input" class="bg-upload-btn">
+                  <i class="fas fa-upload"></i>
+                  <span>上传背景图片</span>
+                </label>
+                <input type="file" id="bg-file-input" accept="image/*" style="display: none" />
+              </div>
+              <div class="bg-effects">
+                <div class="settings-option">
+                  <span class="settings-option-label">毛玻璃效果</span>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="glassmorphism-toggle" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="blur-strength">
+                  <span class="settings-option-label">模糊强度</span>
+                  <input type="range" id="blur-strength" min="0" max="20" value="10" class="blur-slider" />
+                  <span class="blur-value">10px</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier-list-container">
+      <!-- Tier 10 -->
+      <div class="tier-row" id="tier-10">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="100, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">10</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 9.5 -->
+      <div class="tier-row half-tier" id="tier-9.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="93, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">9.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 9 -->
+      <div class="tier-row" id="tier-9">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="87, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">9</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 8.5 -->
+      <div class="tier-row half-tier" id="tier-8.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="83, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">8.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 8 -->
+      <div class="tier-row" id="tier-8">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="79, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">8</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 7.5 -->
+      <div class="tier-row half-tier" id="tier-7.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="75, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">7.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 7 -->
+      <div class="tier-row" id="tier-7">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="70, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">7</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 6.5 -->
+      <div class="tier-row half-tier" id="tier-6.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="65, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">6.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 6 -->
+      <div class="tier-row" id="tier-6">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="60, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">6</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 5.5 -->
+      <div class="tier-row half-tier" id="tier-5.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="55, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">5.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 5 -->
+      <div class="tier-row" id="tier-5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="50, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 4.5 -->
+      <div class="tier-row half-tier" id="tier-4.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="45, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">4.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 4 -->
+      <div class="tier-row" id="tier-4">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="40, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">4</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 3.5 -->
+      <div class="tier-row half-tier" id="tier-3.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="35, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">3.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 3 -->
+      <div class="tier-row" id="tier-3">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="30, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">3</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 2.5 -->
+      <div class="tier-row half-tier" id="tier-2.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="25, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">2.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 2 -->
+      <div class="tier-row" id="tier-2">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="20, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">2</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+
+      <!-- Tier 1.5 -->
+      <div class="tier-row half-tier" id="tier-1.5">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="15, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">1.5</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+      <!-- Tier 1 -->
+      <div class="tier-row" id="tier-1">
+        <div class="tier-label-container">
+          <div class="tier-label">
+            <svg viewBox="0 0 36 36" class="circular-chart white">
+              <path
+                class="circle-bg"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <path
+                class="circle"
+                stroke-dasharray="10, 100"
+                d="M18 2.5
+                              a 15.5 15.5 0 0 1 0 31
+                              a 15.5 15.5 0 0 1 0 -31"
+              />
+              <text x="18" y="19" class="percentage">1</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tier-cards">
+          <div class="card"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="my-tier-list.js"></script>
+    <script src="comments.js"></script>
+    <script src="gradient-controller.js"></script>
+    <script>
+      // 初始化渐变控制器
+      const gradientController = new GradientController();
+
+      // 关闭背景设置面板
+      function closeBackgroundPanel() {
+        const panel = document.getElementById('background-settings-panel');
+        if (panel) {
+          panel.classList.remove('active');
+        }
+      }
+
+      // 页面加载完成后初始化
+      document.addEventListener('DOMContentLoaded', function () {
+        // 初始化所有功能
+        initializeApp();
+      });
+
+      function initializeApp() {
+        // TODO: 在这里添加应用初始化逻辑
+        // 例如: initSettingsMenu(), initBackgroundSettings(), renderTierCards() 等
+        // 目前你可以先调用已有的初始化函数
+        if (typeof initSettingsMenu === 'function') initSettingsMenu();
+        if (typeof initBackgroundSettings === 'function') initBackgroundSettings();
+        if (typeof renderTierCards === 'function') renderTierCards();
+        // 如果 comments.js 中的功能也希望在这里统一初始化，确保它们在全局可用
+        // 例如: if (typeof window.loadComments === 'function') window.loadComments();
+        console.log('initializeApp function called');
+      }
+
+      // 样式切换功能
+      document.addEventListener('DOMContentLoaded', function () {
+        const styleButtons = document.querySelectorAll('.style-btn');
+        const tierListContainer = document.querySelector('.tier-list-container');
+
+        // 从本地存储加载样式设置
+        const savedStyle = localStorage.getItem('anime-card-style') || '1';
+
+        // 应用保存的样式
+        applyCardStyle(savedStyle);
+
+        // 设置对应按钮为激活状态
+        styleButtons.forEach(btn => {
+          if (btn.getAttribute('data-style') === savedStyle) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+
+        // 样式切换事件
+        styleButtons.forEach(button => {
+          button.addEventListener('click', function () {
+            // 移除所有按钮的活跃状态
+            styleButtons.forEach(btn => btn.classList.remove('active'));
+            // 添加当前按钮的活跃状态
+            this.classList.add('active');
+
+            const styleOption = this.getAttribute('data-style');
+
+            // 应用样式并保存设置
+            applyCardStyle(styleOption);
+            localStorage.setItem('anime-card-style', styleOption);
+          });
+        });
+
+        // 应用卡片样式
+        function applyCardStyle(styleOption) {
+          // 首先移除所有样式类
+          document.querySelectorAll('.card').forEach(card => {
+            card.classList.remove('option-current', 'option-2', 'option-3', 'option-4');
+
+            // 根据不同选项添加对应的样式类
+            if (styleOption === '1') {
+              // 默认样式 - 无文字
+              tierListContainer.classList.add('hide-titles');
+            } else if (styleOption === '2') {
+              // 有文字样式
+              tierListContainer.classList.remove('hide-titles');
+              card.classList.add('option-current');
+            }
+          });
+        }
+
+        // 背景设置按钮事件
+        const backgroundBtn = document.getElementById('background-settings-btn');
+        const backgroundPanel = document.getElementById('background-settings-panel');
+
+        if (backgroundBtn && backgroundPanel) {
+          backgroundBtn.addEventListener('click', function () {
+            backgroundPanel.classList.toggle('active');
+          });
+        }
+      });
+
+      // 设置面板折叠/展开功能
+      function toggleSettingsSection(headerElement) {
+        const section = headerElement.parentElement;
+        section.classList.toggle('active');
+      }
+
+      // 点击其他地方关闭背景设置面板
+      document.addEventListener('click', function (event) {
+        const backgroundBtn = document.getElementById('background-settings-btn');
+        const backgroundPanel = document.getElementById('background-settings-panel');
+
+        if (
+          backgroundBtn &&
+          backgroundPanel &&
+          !backgroundBtn.contains(event.target) &&
+          !backgroundPanel.contains(event.target)
+        ) {
+          backgroundPanel.classList.remove('active');
+        }
+      });
+    </script>
+
+    <!-- Tag分析区域 -->
+    <div class="tag-cloud-section">
+      <div class="section-title-container">
+        <h2 class="section-title">Tag分析</h2>
+        <button id="load-tag-cloud-btn" class="load-tag-cloud-btn">
+          <i class="fas fa-tags"></i>
+          <span>加载Tag</span>
+        </button>
+        <span class="tag-cloud-note">注意：新添加动画后请重新点击加载Tag</span>
+      </div>
+      <div class="tag-cloud-wrapper">
+        <div id="main-tag-cloud-container" class="main-tag-cloud-container">
+          <!-- 标签云将在这里动态生成 -->
+          <div class="tag-cloud-placeholder">
+            <p>查看您添加的动画中最常见的标签</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 评论区标题 -->
+    <div class="comments-section">
+      <h2 class="comments-section-title">我的评论</h2>
+
+      <!-- 评论卡片容器 -->
+      <div class="comments-container">
+        <!-- 评论将在这里动态生成 -->
+      </div>
+    </div>
+
+    <!-- 导出图片对话框 -->
+    <div id="export-image-dialog" class="export-dialog">
+      <div class="export-dialog-content">
+        <button class="export-dialog-close"><i class="fas fa-times"></i></button>
+        <h3 class="export-dialog-title">导出为图片</h3>
+        <div class="export-dialog-body">
+          <div id="export-loading" class="export-loading">
+            <div class="spinner"></div>
+            <p>正在生成图片，请稍候...</p>
+          </div>
+          <img id="export-preview" class="export-preview" src="" alt="预览" style="display: none" />
+        </div>
+        <div class="export-dialog-actions">
+          <button id="download-image-btn" class="export-dialog-btn primary">
+            <i class="fas fa-download"></i>
+            <span>下载图片</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分享链接对话框 -->
+    <div id="share-link-dialog" class="export-dialog">
+      <div class="export-dialog-content">
+        <button class="export-dialog-close"><i class="fas fa-times"></i></button>
+        <h3 class="export-dialog-title">分享链接</h3>
+        <div class="export-dialog-body">
+          <p>复制以下链接分享你的Tier List：</p>
+          <input type="text" id="share-link-input" class="share-link-input" readonly />
+        </div>
+        <div class="export-dialog-actions">
+          <button id="copy-link-btn" class="export-dialog-btn primary">
+            <i class="fas fa-copy"></i>
+            <span>复制链接</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导入确认对话框 -->
+    <div id="import-confirm-dialog" class="export-dialog">
+      <div class="export-dialog-content">
+        <button class="export-dialog-close"><i class="fas fa-times"></i></button>
+        <h3 class="export-dialog-title">导入数据</h3>
+        <div class="export-dialog-body">
+          <p>导入将覆盖当前的所有数据，确定要继续吗？</p>
+        </div>
+        <div class="export-dialog-actions">
+          <button id="cancel-import-btn" class="export-dialog-btn">
+            <i class="fas fa-times"></i>
+            <span>取消</span>
+          </button>
+          <button id="confirm-import-btn" class="export-dialog-btn primary">
+            <i class="fas fa-check"></i>
+            <span>确认导入</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 动画详情对话框 -->
+    <div id="anime-detail-dialog" class="export-dialog">
+      <div class="export-dialog-content anime-detail-content">
+        <button class="export-dialog-close"><i class="fas fa-times"></i></button>
+        <div class="anime-detail-header">
+          <div class="anime-detail-cover">
+            <img id="detail-cover" src="" alt="封面" />
+          </div>
+          <div class="anime-detail-info">
+            <h3 id="detail-title" class="anime-detail-title"></h3>
+            <h4 id="detail-title-cn" class="anime-detail-title-cn"></h4>
+            <div class="anime-detail-meta">
+              <div class="meta-item">
+                <span class="meta-label"><i class="fas fa-calendar-alt"></i> 放送日期:</span>
+                <span id="detail-air-date" class="meta-value"></span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label"><i class="fas fa-star"></i> 评分:</span>
+                <span id="detail-rating" class="meta-value"></span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label"><i class="fas fa-list-ol"></i> 排名:</span>
+                <span id="detail-rank" class="meta-value"></span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label"><i class="fas fa-film"></i> 集数:</span>
+                <span id="detail-eps" class="meta-value"></span>
+              </div>
+            </div>
+            <div class="anime-detail-tags" id="detail-tags"></div>
+          </div>
+        </div>
+        <div class="anime-detail-body">
+          <div class="detail-section">
+            <h4 class="detail-section-title"><i class="fas fa-info-circle"></i> 简介</h4>
+            <div id="detail-summary" class="detail-section-content"></div>
+          </div>
+          <div class="detail-section">
+            <h4 class="detail-section-title"><i class="fas fa-building"></i> 制作信息</h4>
+            <div id="detail-infobox" class="detail-section-content"></div>
+          </div>
+        </div>
+        <div class="anime-detail-actions">
+          <a id="detail-bgm-link" href="#" target="_blank" class="export-dialog-btn secondary">
+            <i class="fas fa-external-link-alt"></i>
+            <span>在Bangumi上查看</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div id="context-menu" class="context-menu">
+      <div class="context-menu-item" id="edit-option">
+        <i class="fas fa-edit"></i>
+        <span>编辑</span>
+      </div>
+      <div class="context-menu-item" id="detail-option">
+        <i class="fas fa-info-circle"></i>
+        <span>查看详情</span>
+      </div>
+      <div class="context-menu-item" id="delete-option">
+        <i class="fas fa-trash"></i>
+        <span>删除</span>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" id="add-comment-option">
+        <i class="fas fa-comment-medical"></i>
+        <span>添加评论</span>
+      </div>
+    </div>
+
+    <!-- 评论对话框 -->
+    <div id="comment-dialog" class="export-dialog">
+      <div class="export-dialog-content">
+        <button class="export-dialog-close"><i class="fas fa-times"></i></button>
+        <h3 class="export-dialog-title">添加评论</h3>
+        <div class="export-dialog-body">
+          <div class="comment-dialog-header">
+            <div class="comment-dialog-cover">
+              <img id="comment-anime-cover" src="" alt="动画封面" />
+              <h4 id="comment-anime-title" class="comment-dialog-title"></h4>
+            </div>
+          </div>
+          <div class="comment-input-container">
+            <label for="comment-text">你的评论:</label>
+            <textarea id="comment-text" class="comment-textarea" placeholder="写下你对这部动画的想法..."></textarea>
+          </div>
+          <div class="comment-style-selector">
+            <label>评论样式:</label>
+            <div class="comment-style-container">
+              <div class="comment-style-option" data-style="1">
+                <i class="fas fa-columns"></i>
+                <span>右侧图片</span>
+              </div>
+              <div class="comment-style-option" data-style="2">
+                <i class="fas fa-image"></i>
+                <span>大图顶部</span>
+              </div>
+              <div class="comment-style-option" data-style="3">
+                <i class="fas fa-layer-group"></i>
+                <span>背景覆盖</span>
+              </div>
+              <div class="comment-style-option" data-style="4">
+                <i class="fas fa-id-card"></i>
+                <span>卡片式</span>
+              </div>
+              <div class="comment-style-option random-style active" data-style="random">
+                <i class="fas fa-random"></i>
+                <span>随机样式</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="export-dialog-actions">
+          <button id="cancel-comment-btn" class="export-dialog-btn">
+            <i class="fas fa-times"></i>
+            <span>取消</span>
+          </button>
+          <button id="save-comment-btn" class="export-dialog-btn primary">
+            <i class="fas fa-save"></i>
+            <span>保存评论</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页面声明 -->
+    <footer class="page-footer">
+      <div class="footer-content">
+        <a href="https://github.com/ikemenrourou" target="_blank">@ikemenrourou</a>
+        <a href="https://github.com/ikemenrourou/BGM-AniTier" target="_blank">GitHub</a>
+        <span>动画信息来自 <a href="https://bgm.tv/" target="_blank">番组计划</a></span>
+        <span>搜索功能参考 <a href="https://github.com/itorr/anime-grid" target="_blank">anime-grid</a></span>
+        <span class="usage-notice">仅供个人学习使用，禁止商业用途</span>
+      </div>
+    </footer>
+  </body>
+</html>

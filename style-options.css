@@ -1,0 +1,197 @@
+/* style-options.css */
+
+/* Base card title properties */
+.card-title-base {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 5px 3px;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.6; /* 增加行高，确保文字完全显示 */
+  text-align: center;
+  opacity: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  max-height: 40px; /* 增加高度，确保两行文字完全显示 */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 限制为2行 */
+  line-clamp: 2; /* 标准属性，增强兼容性 */
+  -webkit-box-orient: vertical;
+  white-space: normal; /* 允许换行 */
+  word-break: break-word; /* 更自然的断行 */
+  text-overflow: ellipsis; /* 显示省略号 */
+  z-index: 5;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease, border 0.3s ease;
+  /* 增强文本截断效果，确保在所有浏览器中正常工作 */
+  display: -webkit-box;
+  display: -moz-box;
+  display: box;
+  -webkit-box-orient: vertical;
+  -moz-box-orient: vertical;
+  box-orient: vertical;
+}
+
+/* 有文字样式: 简洁版，只有文字和阴影 */
+.card.option-current .card-title {
+  bottom: -40px; /* 增加距离，确保有足够空间显示完整标题 */
+  background-color: transparent; /* 移除背景 */
+  border-radius: 0; /* 移除圆角 */
+  padding: 8px 5px;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.6; /* 增加行高，确保文字完全显示 */
+  text-align: center;
+  opacity: 1;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.8), 0 2px 5px rgba(0, 0, 0, 0.7); /* 增强文字阴影，提高可读性 */
+  max-height: 40px; /* 增加高度，确保两行文字完全显示 */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 限制为2行 */
+  line-clamp: 2; /* 标准属性，增强兼容性 */
+  -webkit-box-orient: vertical;
+  white-space: normal; /* 允许换行 */
+  word-break: break-word; /* 更自然的断行 */
+  text-overflow: ellipsis; /* 显示省略号 */
+  /* 增强文本截断效果 */
+  display: -webkit-box;
+  display: -moz-box;
+  display: box;
+  -webkit-box-orient: vertical;
+  -moz-box-orient: vertical;
+  box-orient: vertical;
+  z-index: 5;
+  box-sizing: border-box;
+  position: absolute;
+  left: 0; /* 恢复正常边距 */
+  right: 0; /* 恢复正常边距 */
+  /* 移除毛玻璃效果 */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  /* 移除边框 */
+  border: none;
+  /* 移除阴影 */
+  box-shadow: none;
+  /* 增强可读性 */
+  font-weight: 500;
+}
+
+/* Option 2: Semi-transparent background with blur effect */
+.card.option-2 .card-title {
+  bottom: -15px; /* 增加距离，确保有足够空间显示完整标题 */
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0)); /* 渐变阴影 */
+  border-radius: 0 0 10px 10px; /* 圆角 */
+  font-size: 11px;
+  line-height: 1.6; /* 增加行高，确保文字完全显示 */
+  padding: 15px 3px 5px 3px; /* 顶部增加内边距，让渐变效果更明显 */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  /* Inherits from .card-title-base or define all explicitly */
+  position: absolute;
+  left: 0;
+  right: 0;
+  color: #fff;
+  text-align: center;
+  opacity: 1;
+  max-height: 40px; /* 增加高度，确保两行文字完全显示 */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* 标准属性，增强兼容性 */
+  -webkit-box-orient: vertical;
+  white-space: normal; /* 允许换行 */
+  word-break: break-word; /* 更自然的断行 */
+  text-overflow: ellipsis; /* 显示省略号 */
+  /* 增强文本截断效果 */
+  display: -webkit-box;
+  display: -moz-box;
+  display: box;
+  -webkit-box-orient: vertical;
+  -moz-box-orient: vertical;
+  box-orient: vertical;
+  z-index: 5;
+  box-sizing: border-box;
+  /* 移除模糊效果，专注于渐变阴影 */
+  font-weight: 500; /* 稍微加粗 */
+}
+
+/* Option 3: No background, pure text with strong shadow */
+.card.option-3 .card-title {
+  bottom: -40px; /* 增加距离，确保有足够空间显示完整标题 */
+  background-color: transparent; /* 无背景 */
+  font-size: 12px;
+  padding: 6px 4px;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.8), 0 2px 5px rgba(0, 0, 0, 0.7); /* 强文字阴影提高可读性 */
+  /* Inherits from .card-title-base or define all explicitly */
+  position: absolute;
+  left: 0;
+  right: 0;
+  color: #fff;
+  text-align: center;
+  opacity: 1;
+  line-height: 1.6; /* 增加行高，确保文字完全显示 */
+  max-height: 40px; /* 增加高度，确保两行文字完全显示 */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* 标准属性，增强兼容性 */
+  -webkit-box-orient: vertical;
+  white-space: normal; /* 允许换行 */
+  word-break: break-word; /* 更自然的断行 */
+  text-overflow: ellipsis; /* 显示省略号 */
+  /* 增强文本截断效果 */
+  display: -webkit-box;
+  display: -moz-box;
+  display: box;
+  -webkit-box-orient: vertical;
+  -moz-box-orient: vertical;
+  box-orient: vertical;
+  z-index: 5;
+  box-sizing: border-box;
+  font-weight: bold; /* 加粗文字提高可见度 */
+  letter-spacing: 0.5px; /* 稍微增加字母间距 */
+}
+
+/* Option 4: Gradient background with blue accent and glow effect */
+.card.option-4 .card-title {
+  bottom: -15px; /* 增加距离，确保有足够空间显示完整标题 */
+  background: rgba(255, 255, 255, 0.25); /* 移除黑色背景，改为半透明白色 */
+  border-radius: 0 0 10px 10px; /* 圆角 */
+  border-bottom: 2px solid #38bdf8; /* 蓝色强调线 */
+  font-size: 11px;
+  padding: 5px 3px;
+  /* 白字黑边效果 */
+  color: #000; /* 黑色文字 */
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; /* 白色边框效果 */
+  /* Inherits from .card-title-base or define all explicitly */
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  opacity: 1;
+  line-height: 1.6; /* 增加行高，确保文字完全显示 */
+  max-height: 40px; /* 增加高度，确保两行文字完全显示 */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* 标准属性，增强兼容性 */
+  -webkit-box-orient: vertical;
+  white-space: normal; /* 允许换行 */
+  word-break: break-word; /* 更自然的断行 */
+  text-overflow: ellipsis; /* 显示省略号 */
+  /* 增强文本截断效果 */
+  display: -webkit-box;
+  display: -moz-box;
+  display: box;
+  -webkit-box-orient: vertical;
+  -moz-box-orient: vertical;
+  box-orient: vertical;
+  z-index: 5;
+  box-sizing: border-box;
+  /* 保留发光效果 */
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+  /* 增强毛玻璃效果 */
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  font-weight: bold; /* 加粗文字 */
+}
