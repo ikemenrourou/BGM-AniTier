@@ -1,4 +1,4 @@
-# 🎌 BGM AniTier - 动画 Tier List 排行工具
+# BGM AniTier - 动画 Tier List 排行工具
 
 一个基于 Web 的动画 Tier List 制作工具，让你可以轻松创建个性化的动画排行榜。
 
