@@ -50,7 +50,7 @@
 
 ### 在线使用
 
-访问：[https://ikemenrourou.github.io/BGM-AniTier/](https://ikemenrourou.github.io/BGM-AniTier/)
+访问：[项目 GitHub Pages]() <!-- 你可以在这里添加实际的在线地址 -->
 
 ## 📖 使用说明
 
