@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BGM AniTier - 动画 Tier List 排行工具</title>
+    <meta
+      name="description"
+      content="基于Web的动画Tier List制作工具，集成Bangumi API，支持自定义背景、评论系统、数据导出等功能"
+    />
+    <link rel="stylesheet" href="my-tier-list.css" />
+    <link rel="stylesheet" href="style-options.css" />
+    <link rel="stylesheet" href="gradient-backgrounds.css" />
+    <link rel="stylesheet" href="comments-styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
+    <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
+  </head>
+  <body>
+    <h1 style="text-align: center; margin: 20px 0">BGM AniTier</h1>
+    <p style="text-align: center; margin-bottom: 30px; color: rgba(255, 255, 255, 0.8)">
+      基于Web的动画 Tier List 制作工具
+    </p>
+    <div style="text-align: center; margin-bottom: 40px">
+      <a
+        href="my-tier-list.html"
+        style="
+          display: inline-block;
+          padding: 15px 30px;
+          background: linear-gradient(135deg, #3d3d6e, #4d3a6e);
+          color: white;
+          text-decoration: none;
+          border-radius: 10px;
+          font-size: 18px;
+          transition: all 0.3s ease;
+        "
+        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'"
+        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+      >
+        🚀 开始制作 Tier List
+      </a>
+    </div>
+
+    <div style="max-width: 800px; margin: 0 auto; padding: 0 20px; color: rgba(255, 255, 255, 0.9); line-height: 1.6">
+      <h2>✨ 功能特色</h2>
+      <ul>
+        <li><strong>Bangumi API 集成</strong>：直接搜索动画，查看详细信息</li>
+        <li><strong>多级评分系统</strong>：支持 1-10 分，包含半分级别</li>
+        <li><strong>拖拽排序</strong>：直观的拖拽操作，轻松调整排名</li>
+        <li><strong>自定义主题</strong>：20+ 渐变背景主题，支持自定义背景</li>
+        <li><strong>评论系统</strong>：为每部动画添加个人评论</li>
+        <li><strong>数据导出</strong>：导出高质量图片和 JSON 数据</li>
+        <li><strong>Tag 分析</strong>：分析你的动画喜好标签</li>
+        <li><strong>响应式设计</strong>：支持桌面和移动端</li>
+      </ul>
+
+      <h2>🙏 致谢</h2>
+      <p>
+        • 动画数据来自 <a href="https://bgm.tv/" target="_blank" style="color: #6ab7ff">番组计划</a><br />
+        • 搜索功能参考
+        <a href="https://github.com/itorr/anime-grid" target="_blank" style="color: #6ab7ff">anime-grid</a>
+      </p>
+    </div>
+
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        margin: 0;
+        background: linear-gradient(135deg, #0a0a2a, #0f1a4d, #1e3a6e, #2a4580, #3d3d6e, #4d3a6e);
+        background-attachment: fixed;
+        color: #fff;
+        padding: 40px 20px;
+        min-height: 100vh;
+      }
+    </style>
+  </body>
+</html>
