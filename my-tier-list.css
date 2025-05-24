@@ -483,7 +483,7 @@ input:checked + .toggle-slider:before {
 
 /* 基础卡片样式 */
 .card {
-  width: 110px; /* 基础宽度 - 与anime-tier-list-tool.1一致 */
+  width: 118px; /* 调整宽度为118px以确保一行8个卡片 */
   height: 165px; /* 图片区域固定高度，宽高比为2:3 */
   border-radius: 10px; /* 圆角 */
   margin-bottom: 50px; /* 进一步增加底部间距，确保有足够空间显示完整标题 */
@@ -1363,7 +1363,7 @@ input:checked + .toggle-slider:before {
   }
 
   .card {
-    width: 90px;
+    width: 95px; /* 调整移动端宽度，与桌面端比例保持一致 */
     height: 135px; /* 保持2:3比例 */
     margin-bottom: 45px; /* 进一步增加底部间距，确保标题完全显示 */
     margin-top: 20px; /* 添加顶部间距，使卡片在垂直方向上居中 */
@@ -1456,6 +1456,68 @@ input:checked + .toggle-slider:before {
   border-radius: 8px;
   margin: 10px 0;
   font-size: 14px;
+}
+
+/* 通用错误提示样式 */
+.error {
+  text-align: center;
+  padding: 20px;
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+.error i {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.error p {
+  margin: 10px 0;
+  font-size: 0.95rem;
+}
+
+/* 重试按钮样式 */
+.retry-btn {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+}
+
+.retry-btn:hover {
+  background-color: #ff5252;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
+}
+
+/* 无结果提示样式 */
+.no-results {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin: 10px 0;
+  font-style: italic;
+}
+
+/* 加载状态样式 */
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin: 10px 0;
 }
 
 /* 动画详情对话框样式 */

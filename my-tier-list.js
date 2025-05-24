@@ -712,12 +712,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // 保存当前状态
     saveSeasonalState();
 
+    // 获取最后添加的动画ID用于位置记忆
+    const lastAddedAnimeId = localStorage.getItem('last-added-anime-id');
+    console.log('开始搜索季度新番，最后添加的动画ID:', lastAddedAnimeId);
+
     // 调用搜索函数，使用标签搜索
-    searchAnimeForSeasonal(searchTag);
+    searchAnimeForSeasonal(searchTag, lastAddedAnimeId);
   }
 
   // 季度新番专用搜索函数 - 移至全局作用域
-  async function searchAnimeForSeasonal(tag) {
+  async function searchAnimeForSeasonal(tag, targetAnimeId = null) {
     // 确保搜索面板存在
     if (!searchPanel) return;
 
@@ -730,6 +734,10 @@ document.addEventListener('DOMContentLoaded', function () {
     currentAnimeResults = [];
     currentSearchTags = [tag]; // 使用标签搜索
     currentSearchKeyword = ''; // 标签搜索时关键词为空
+
+    // 如果有目标动画ID，需要加载到包含该动画的位置
+    let needToFindTarget = targetAnimeId !== null;
+    console.log('需要查找目标动画:', needToFindTarget, '目标ID:', targetAnimeId);
 
     try {
       // 标记为正在加载
@@ -758,7 +766,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (loadingElement) loadingElement.remove();
 
         // 显示结果
-        displaySeasonalResults(cachedData.results);
+        displaySeasonalResults(cachedData.results, targetAnimeId);
         return;
       }
 
@@ -820,16 +828,34 @@ document.addEventListener('DOMContentLoaded', function () {
       if (loadingElement) loadingElement.remove();
 
       // 显示结果
-      displaySeasonalResults(animes);
+      displaySeasonalResults(animes, targetAnimeId);
     } catch (error) {
       console.error('季度新番搜索发生错误:', error);
-      seasonalResults.innerHTML = `<div class="error">发生错误：${error.message}</div>`;
+
+      let errorMessage = '发生错误，请稍后重试';
+
+      // 检查是否是网络连接问题
+      if (error.message.includes('Failed to fetch') || error.message.includes('ERR_PROXY_CONNECTION_FAILED')) {
+        errorMessage = '网络连接失败，请检查网络连接或代理设置';
+      } else if (error.message.includes('CORS')) {
+        errorMessage = '跨域请求被阻止，请检查浏览器设置';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      seasonalResults.innerHTML = `
+        <div class="error">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>${errorMessage}</p>
+          <button class="retry-btn" onclick="searchSeasonalAnime()">重试</button>
+        </div>
+      `;
       isLoadingMore = false;
     }
   }
 
   // 季度新番结果显示函数 - 移至全局作用域
-  function displaySeasonalResults(animes) {
+  function displaySeasonalResults(animes, targetAnimeId = null) {
     // 确保搜索面板存在
     if (!searchPanel) return;
 
@@ -839,6 +865,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (animes.length === 0) {
       seasonalResults.innerHTML = '<div class="no-results">未找到该季度的新番，请尝试其他季度</div>';
       return;
+    }
+
+    // 检查当前结果中是否包含目标动画
+    let targetFound = false;
+    if (targetAnimeId) {
+      targetFound = animes.some(anime => anime.id.toString() === targetAnimeId);
+      console.log('在当前结果中查找目标动画:', targetAnimeId, '找到:', targetFound);
     }
 
     // 显示搜索结果
@@ -907,6 +940,10 @@ document.addEventListener('DOMContentLoaded', function () {
           };
           localStorage.setItem('last-add-source', 'seasonal'); // 记录添加来源
 
+          // 保存最后添加的动画ID用于位置记忆
+          localStorage.setItem('last-added-anime-id', animeId);
+          console.log('保存最后添加的动画ID:', animeId);
+
           // 保存到本地存储
           saveToLocalStorage();
 
@@ -926,6 +963,78 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 设置无限滚动
     setupSeasonalInfiniteScroll();
+
+    // 如果找到目标动画，滚动到该位置
+    if (targetFound && targetAnimeId) {
+      setTimeout(() => {
+        scrollToTargetAnime(targetAnimeId);
+      }, 100);
+    } else if (targetAnimeId && hasMoreResults) {
+      // 如果没找到目标动画但还有更多结果，继续加载
+      console.log('目标动画未找到，继续加载更多结果');
+      loadMoreSeasonalAnimeUntilFound(targetAnimeId);
+    }
+  }
+
+  // 滚动到目标动画的函数
+  function scrollToTargetAnime(targetAnimeId) {
+    if (!searchPanel) return;
+
+    const seasonalResults = searchPanel.querySelector('.seasonal-results');
+    if (!seasonalResults) return;
+
+    const targetElement = seasonalResults.querySelector(`[data-id="${targetAnimeId}"]`);
+    if (targetElement) {
+      console.log('找到目标动画元素，开始滚动');
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+
+      // 高亮显示目标动画（可选）
+      targetElement.style.border = '2px solid #ff6b6b';
+      targetElement.style.borderRadius = '8px';
+      setTimeout(() => {
+        targetElement.style.border = '';
+        targetElement.style.borderRadius = '';
+      }, 3000);
+
+      // 清除目标动画ID，避免下次重复滚动
+      localStorage.removeItem('last-added-anime-id');
+      console.log('已清除最后添加的动画ID');
+    } else {
+      console.log('未找到目标动画元素');
+    }
+  }
+
+  // 继续加载直到找到目标动画的函数
+  async function loadMoreSeasonalAnimeUntilFound(targetAnimeId) {
+    if (!hasMoreResults || isLoadingMore) return;
+
+    console.log('开始加载更多内容以查找目标动画:', targetAnimeId);
+
+    // 加载更多内容
+    await loadMoreSeasonalAnime();
+
+    // 检查是否找到目标动画
+    const targetFound = currentAnimeResults.some(anime => anime.id.toString() === targetAnimeId);
+
+    if (targetFound) {
+      console.log('在加载的内容中找到目标动画，开始滚动');
+      setTimeout(() => {
+        scrollToTargetAnime(targetAnimeId);
+      }, 100);
+    } else if (hasMoreResults) {
+      // 如果还有更多结果且没找到，继续加载
+      console.log('目标动画仍未找到，继续加载');
+      setTimeout(() => {
+        loadMoreSeasonalAnimeUntilFound(targetAnimeId);
+      }, 500);
+    } else {
+      console.log('已加载所有内容，但未找到目标动画');
+      // 清除目标动画ID
+      localStorage.removeItem('last-added-anime-id');
+    }
   }
 
   // 季度新番无限滚动函数 - 移至全局作用域
@@ -1185,6 +1294,10 @@ document.addEventListener('DOMContentLoaded', function () {
             source: 'seasonal',
           };
           localStorage.setItem('last-add-source', 'seasonal'); // 记录添加来源
+
+          // 保存最后添加的动画ID用于位置记忆
+          localStorage.setItem('last-added-anime-id', animeId);
+          console.log('保存最后添加的动画ID:', animeId);
 
           // 保存到本地存储
           saveToLocalStorage();
@@ -1786,8 +1899,25 @@ document.addEventListener('DOMContentLoaded', function () {
       } catch (error) {
         console.error('搜索出错', error);
 
+        let errorMessage = '搜索出错，请稍后再试';
+
+        // 检查是否是网络连接问题
+        if (error.message.includes('Failed to fetch') || error.message.includes('ERR_PROXY_CONNECTION_FAILED')) {
+          errorMessage = '网络连接失败，请检查网络连接或代理设置';
+        } else if (error.message.includes('CORS')) {
+          errorMessage = '跨域请求被阻止，请检查浏览器设置';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
         if (isNewSearch) {
-          results.innerHTML = '<div class="error">搜索出错，请稍后再试</div>';
+          results.innerHTML = `
+            <div class="error">
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>${errorMessage}</p>
+              <button class="retry-btn" onclick="document.querySelector('.search-form').dispatchEvent(new Event('submit'))">重试</button>
+            </div>
+          `;
         } else {
           // 移除加载更多提示
           const loadingMore = results.querySelector('.loading-more');
@@ -1796,7 +1926,10 @@ document.addEventListener('DOMContentLoaded', function () {
           // 添加错误提示
           const errorElement = document.createElement('div');
           errorElement.className = 'error load-more-error';
-          errorElement.textContent = '加载更多失败，请稍后再试';
+          errorElement.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>${errorMessage}</p>
+          `;
           results.appendChild(errorElement);
         }
 
@@ -1879,6 +2012,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 source: 'bangumi',
               };
               localStorage.setItem('last-add-source', 'bangumi'); // 记录添加来源
+
+              // 保存最后添加的动画ID用于位置记忆
+              localStorage.setItem('last-added-anime-id', animeId);
+              console.log('保存最后添加的动画ID:', animeId);
 
               // 保存到本地存储
               saveToLocalStorage();
@@ -2164,6 +2301,12 @@ document.addEventListener('DOMContentLoaded', function () {
   // 添加SortableJS拖拽功能
   function enableDragAndDrop() {
     console.log('初始化SortableJS拖拽功能');
+
+    // 检查Sortable是否已加载
+    if (typeof Sortable === 'undefined') {
+      console.error('Sortable库未加载，跳过拖拽功能初始化');
+      return;
+    }
 
     // 销毁现有的Sortable实例
     sortableInstances.forEach(instance => {
