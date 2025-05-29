@@ -8,6 +8,10 @@
 2.  在您的网页浏览器中打开 `my-tier-list.html` 文件。
 3.  开始整理您的动画排行！
 
+### 在线使用
+
+访问：[项目 GitHub Pages]() <!-- https://dsgrou.dpdns.org/my-tier-list -->
+
 ## 主要功能
 
 -   从 Bangumi 搜索动画或按季度浏览。
