@@ -25,16 +25,26 @@
 
 下面展示了工具的一些主要界面和功能：
 
-![Tier List 主界面](截图/tierlist.png)
+## 效果截图
+
+下面展示了工具的一些主要界面和功能：
+
+<img src="截图/tierlist.png" alt="Tier List 主界面" width="500">
 *Tier List 主界面，可以拖拽动画进行分级。*
 
-![AI 动画总结报告](截图/LLM动画总结.png)
+<br>
+
+<img src="截图/LLM动画总结.png" alt="AI 动画总结报告" width="500">
 *AI 生成的个性化动画品味总结报告。*
 
-![标签筛选功能](截图/tag.png)
+<br>
+
+<img src="截图/tag.png" alt="标签筛选功能" width="500">
 *通过标签筛选和管理动画。*
 
-![自定义主题](截图/主题.png)
+<br>
+
+<img src="截图/主题.png" alt="自定义主题" width="500">
 *自定义工具的颜色主题。*
 
 ## 技术栈
