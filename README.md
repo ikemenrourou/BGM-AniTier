@@ -4,9 +4,18 @@
 
 ## 如何使用
 
-1.  下载本项目的所有文件。
-2.  在您的网页浏览器中打开 `my-tier-list.html` 文件。
-3.  开始整理您的动画排行！
+1.  点击页面右上角绿色的 `Code` 按钮
+2.  选择 Download ZIP
+3.  下载完成后解压缩文件夹
+4.  在您的网页浏览器中打开 `my-tier-list.html` 文件
+5.  AI功能：如需使用AI分析功能，请准备 Google Gemini API Key
+
+### 方法二：下载发行版（推荐）
+1. 访问 [Releases 页面](https://github.com/yourusername/BGM-AniTier/releases)
+2. 下载最新版本的压缩包
+3. 解压缩到任意文件夹
+4. 双击打开 `my-tier-list.html` 文件
+5. 开始创建您的动画排行榜！
 
 ### 在线使用
 
