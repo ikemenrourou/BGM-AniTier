@@ -10,8 +10,7 @@
 
 ### 在线使用
 
-访问：[项目 GitHub Pages]() <!-- https://dsgrou.dpdns.org/my-tier-list -->
-
+访问：[项目 GitHub Pages](https://dsgrou.dpdns.org/my-tier-list)
 ## 主要功能
 
 -   从 Bangumi 搜索动画或按季度浏览。
