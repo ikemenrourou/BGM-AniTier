@@ -89,8 +89,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // 暴露渲染函数到全局作用域，以便其他脚本调用
+  // 暴露函数到全局作用域，以便其他脚本调用
   window.renderComments = renderComments;
+  window.loadComments = loadComments;
 
   // 创建评论卡片
   function createCommentCard(comment, index) {
@@ -642,8 +643,11 @@ document.addEventListener('DOMContentLoaded', function () {
         masonryInstance.layout(); // 手动触发布局
 
         // 确保在窗口大小变化时，gutter也能被正确应用
-        // 移除旧的事件监听器
-        window.removeEventListener('resize', window._masonryResizeHandler);
+        // 移除旧的事件监听器（如果存在）
+        if (window._masonryResizeHandler) {
+          window.removeEventListener('resize', window._masonryResizeHandler);
+        }
+
         // 创建新的事件处理函数并保存引用
         window._masonryResizeHandler = function () {
           console.log('窗口大小变化，重新初始化Masonry布局（应用固定gutter）');
@@ -659,12 +663,8 @@ document.addEventListener('DOMContentLoaded', function () {
           masonryInstance.layout();
         };
 
-        // 使用防抖函数包装resize事件处理程序，避免频繁触发
-        let resizeTimeout;
-        window.addEventListener('resize', function () {
-          clearTimeout(resizeTimeout);
-          resizeTimeout = setTimeout(window._masonryResizeHandler, 200);
-        });
+        // 添加事件监听器（带防抖）
+        window.addEventListener('resize', window._masonryResizeHandler);
 
         // 有时，即使 imagesLoaded 完成，浏览器可能仍在进行微小的渲染调整。
         // 添加一个微小的延迟再次触发布局可能有助于解决边缘情况。
@@ -711,7 +711,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // 监听窗口大小变化，重新布局
-        window.removeEventListener('resize', window._masonryResizeHandler); // 移除旧的事件监听器
+        // 移除旧的事件监听器（如果存在）
+        if (window._masonryResizeHandler) {
+          window.removeEventListener('resize', window._masonryResizeHandler);
+        }
 
         // 创建新的事件处理函数并保存引用
         window._masonryResizeHandler = function () {
@@ -727,12 +730,8 @@ document.addEventListener('DOMContentLoaded', function () {
           masonryInstance.layout();
         };
 
-        // 使用防抖函数包装resize事件处理程序，避免频繁触发
-        let resizeTimeout;
-        window.addEventListener('resize', function () {
-          clearTimeout(resizeTimeout);
-          resizeTimeout = setTimeout(window._masonryResizeHandler, 200);
-        });
+        // 添加事件监听器（带防抖）
+        window.addEventListener('resize', window._masonryResizeHandler);
 
         return masonryInstance;
       }

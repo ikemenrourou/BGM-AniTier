@@ -1,6 +1,6 @@
 /* 评论区基础样式 */
 .comments-section {
-  margin: 40px auto;
+  margin: 40px auto 60px auto; /* 增加下边距，避免与API密钥设置区域重叠 */
   padding: 0 20px;
   max-width: 1500px; /* 增加宽度以容纳4个评论 */
 }
@@ -106,9 +106,9 @@
 }
 
 .card-type-1 .comment-text-side {
-  width: calc(100% - 130px); /* 调整为适中的图片宽度 */
+  width: calc(100% - 100px); /* 减小图片宽度，增加文本区域 */
   padding: 18px; /* 恢复原来的内边距 */
-  padding-right: 15px; /* 右侧减少一些内边距，与图片保持距离 */
+  padding-right: 12px; /* 右侧减少一些内边距，与图片保持距离 */
   display: flex;
   flex-direction: column;
   justify-content: flex-start; /* 从顶部开始布局 */
@@ -117,7 +117,7 @@
 }
 
 .card-type-1 .comment-anime-cover-right {
-  width: 130px; /* 调整为适中的图片宽度，比原来的100px大一些但不会太大 */
+  width: 100px; /* 减小图片宽度 */
   height: 100%;
   overflow: hidden;
   position: absolute;
@@ -390,15 +390,52 @@
   .comments-container {
     text-align: center; /* 在小屏幕上居中对齐 */
   }
+
+  .comments-section {
+    margin: 30px auto 50px auto; /* 在小屏幕上减少边距 */
+  }
 }
 
 @media (max-width: 480px) {
   .comment-card {
-    width: 100%; /* 在小屏幕上使卡片宽度为100% */
-    max-width: 350px; /* 增加最大宽度限制 */
-    margin-left: auto;
-    margin-right: auto;
+    padding: 15px;
   }
+
+  .comments-section {
+    margin: 20px auto 40px auto; /* 在更小屏幕上进一步减少边距 */
+  }
+
+  .no-comments {
+    min-height: 120px; /* 在小屏幕上减少高度 */
+  }
+
+  .no-comments p {
+    padding: 20px 25px; /* 在小屏幕上减少内边距 */
+    font-size: 15px; /* 稍微减小字体 */
+  }
+}
+
+/* 无评论提示居中样式 */
+.no-comments {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px; /* 减少最小高度，使布局更紧凑 */
+  width: 100%;
+  margin-bottom: 20px; /* 添加下边距，确保与下方元素有间距 */
+}
+
+.no-comments p {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  margin: 0;
+  padding: 25px 30px; /* 增加左右内边距，减少上下内边距 */
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 12px; /* 稍微增加圆角 */
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  max-width: 500px; /* 限制最大宽度，避免在大屏幕上过宽 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 添加轻微阴影 */
 }
 
 /* 标签云区域样式 */
