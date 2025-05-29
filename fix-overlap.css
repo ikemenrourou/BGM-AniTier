@@ -1,0 +1,452 @@
+/* 临时修复重叠问题的CSS文件 */
+
+/* 强制修复评论区域下边距 */
+.comments-section {
+  margin: 40px auto 120px auto !important; /* 进一步增加下边距 */
+}
+
+/* 强制修复API密钥设置区域上边距 */
+.api-key-standalone-section {
+  margin: 120px auto 40px auto !important; /* 进一步增加上边距 */
+}
+
+/* 优化无评论提示样式 */
+.no-comments {
+  min-height: 100px !important; /* 减少最小高度 */
+  margin-bottom: 50px !important; /* 增加下边距 */
+  padding: 20px 0 !important; /* 添加上下内边距 */
+}
+
+.no-comments p {
+  padding: 15px 20px !important; /* 减少内边距 */
+  max-width: 450px !important; /* 稍微减少宽度 */
+  border-radius: 12px !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+  margin: 0 auto !important; /* 确保居中 */
+}
+
+/* ========== 修复截图背景问题 ========== */
+
+/* 截图模式下修复背景固定问题 */
+.screenshot-mode body {
+  background-attachment: scroll !important; /* 强制背景跟随滚动 */
+  min-height: auto !important;
+}
+
+.screenshot-mode body.custom-background {
+  background-attachment: scroll !important; /* 自定义背景也跟随滚动 */
+}
+
+.screenshot-mode .gradient-background {
+  background-attachment: scroll !important; /* 渐变背景跟随滚动 */
+}
+
+/* 为截图创建一个包装容器 */
+.screenshot-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: inherit;
+  background-attachment: scroll;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 截图模式下的默认背景处理 */
+.screenshot-mode .screenshot-container {
+  background: linear-gradient(135deg, #0a0a2a, #0f1a4d, #1e3a6e, #2a4580, #3d3d6e, #4d3a6e);
+  background-attachment: scroll;
+}
+
+/* 截图模式下的自定义背景处理 */
+.screenshot-mode.custom-background .screenshot-container {
+  background-image: var(--custom-bg-image);
+  background-color: transparent;
+  background-size: cover;
+  background-position: center;
+  background-repeat: repeat-y; /* 修改为垂直重复 */
+  background-attachment: scroll;
+}
+
+/* 截图模式下的各种渐变主题处理 */
+.screenshot-mode .screenshot-container.gradient-deep-blue {
+  background: linear-gradient(135deg, #0a0a2a, #0f1a4d, #1e3a6e, #2a4580, #3d3d6e, #4d3a6e);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-aurora {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-sakura {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 25%, #ff9a9e 50%, #fecfef 75%, #fecfef 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-neon {
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 25%, #24243e 50%, #ff006e 75%, #8338ec 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-ocean {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #00c6ff 50%, #0072ff 75%, #1e3c72 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-golden {
+  background: linear-gradient(135deg, #f7971e 0%, #ffd200 25%, #ffb347 50%, #ff8c42 75%, #f7931e 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-emerald {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 25%, #4ecdc4 50%, #44a08d 75%, #093637 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-cosmic {
+  background: linear-gradient(135deg, #0c0c0c 0%, #161b22 25%, #21262d 50%, #30363d 75%, #484f58 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-lavender {
+  background: linear-gradient(135deg, #ee9ca7 0%, #ffdde1 25%, #c471ed 50%, #f64f59 75%, #ee9ca7 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-mystic {
+  background: linear-gradient(135deg, #2d1b69 0%, #11998e 25%, #38ef7d 50%, #667eea 75%, #764ba2 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-steel {
+  background: linear-gradient(135deg, #232526 0%, #414345 25%, #636363 50%, #a8a8a8 75%, #232526 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-mint {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 25%, #dcedc1 50%, #a8e6cf 75%, #56ab2f 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-volcano {
+  background: linear-gradient(135deg, #ff4b1f 0%, #ff9068 25%, #ff6b35 50%, #f7931e 75%, #ff4b1f 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-crystal {
+  background: linear-gradient(135deg, #e6f3ff 0%, #b3d9ff 25%, #80bfff 50%, #4da6ff 75%, #1a8cff 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-spectrum {
+  background: linear-gradient(
+    135deg,
+    #ff6b6b 0%,
+    #ffa726 14%,
+    #ffeb3b 28%,
+    #66bb6a 42%,
+    #42a5f5 56%,
+    #ab47bc 70%,
+    #ff6b6b 100%
+  );
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-shadow {
+  background: linear-gradient(135deg, #000000 0%, #1c1c1c 25%, #383838 50%, #2c2c2c 75%, #000000 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-rose-gold {
+  background: linear-gradient(135deg, #f7797d 0%, #fbd786 25%, #c6ffdd 50%, #fbd786 75%, #f7797d 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-nordic {
+  background: linear-gradient(135deg, #667db6 0%, #0082c8 25%, #0082c8 50%, #667db6 75%, #667db6 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-cyberpunk {
+  background: linear-gradient(135deg, #0f3460 0%, #16537e 25%, #ff006e 50%, #fb8500 75%, #8338ec 100%);
+  background-attachment: scroll;
+}
+
+.screenshot-mode .screenshot-container.gradient-sunset {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 25%, #fa709a 50%, #fee140 75%, #fa709a 100%);
+  background-attachment: scroll;
+}
+
+/* ========== 右上角按钮垂直布局修复 ========== */
+
+/* 调整设置菜单容器为垂直布局 */
+.settings-menu-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column; /* 改为垂直排列 */
+  gap: 10px; /* 按钮之间的间距 */
+  align-items: flex-end; /* 右对齐 */
+}
+
+/* 背景设置按钮容器调整 */
+.background-settings-container {
+  position: relative; /* 改为相对定位 */
+  top: auto; /* 重置top */
+  right: auto; /* 重置right */
+  z-index: 900;
+}
+
+/* 调整背景设置面板位置，避免遮挡 */
+.background-settings-panel {
+  position: fixed;
+  top: 80px; /* 调整位置，避免与按钮重叠 */
+  right: 20px;
+  width: 320px;
+  max-height: calc(100vh - 100px);
+  background: rgba(15, 26, 77, 0.95);
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1001;
+  display: none;
+  overflow-y: auto;
+}
+
+/* 调整设置菜单面板位置 */
+.settings-menu-panel {
+  position: fixed;
+  top: 80px; /* 调整位置，避免与按钮重叠 */
+  right: 20px;
+  width: 280px;
+  max-height: calc(100vh - 100px);
+  background: rgba(15, 26, 77, 0.95);
+  border-radius: 15px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1001;
+  display: none;
+  overflow-y: auto;
+}
+
+.background-settings-panel.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========== 截图功能样式 ========== */
+
+/* 截图选项容器 */
+.screenshot-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 截图帮助区域 */
+.screenshot-help-section {
+  margin-top: 10px;
+}
+
+/* 帮助切换按钮 */
+.screenshot-help-toggle {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.screenshot-help-toggle:hover {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.screenshot-help-toggle .toggle-icon {
+  margin-left: auto;
+  transition: transform 0.3s ease;
+}
+
+.screenshot-help-toggle.expanded .toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* 帮助内容区域 */
+.screenshot-help-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 0 0 8px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  padding: 0 15px;
+}
+
+.screenshot-help-content.expanded {
+  max-height: 600px;
+  padding: 15px;
+}
+
+/* 帮助方法样式 */
+.help-method {
+  margin-bottom: 20px;
+}
+
+.help-method:last-of-type {
+  margin-bottom: 15px;
+}
+
+.help-method h4 {
+  color: #38bdf8;
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.help-method h4 i {
+  font-size: 12px;
+}
+
+.help-method ol,
+.help-method ul {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.help-method li {
+  margin-bottom: 4px;
+}
+
+.help-method ul {
+  margin: 4px 0;
+  padding-left: 16px;
+}
+
+.help-method ul li {
+  margin-bottom: 2px;
+  font-size: 11px;
+}
+
+.help-method p {
+  margin: 8px 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* 帮助提示样式 */
+.help-note {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 15px;
+}
+
+.help-note p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.help-note i {
+  color: #38bdf8;
+  margin-right: 6px;
+}
+
+/* kbd 标签样式 */
+.screenshot-help-content kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #fff;
+  white-space: nowrap;
+  margin: 0 2px;
+}
+
+/* 截图模式按钮状态 */
+#toggle-screenshot-mode-btn.active {
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+}
+
+#toggle-screenshot-mode-btn.active i {
+  color: #fff;
+}
+
+#toggle-screenshot-mode-btn.active span {
+  color: #fff;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .settings-menu-container {
+    top: 15px;
+    right: 15px;
+    gap: 8px;
+  }
+
+  .background-settings-panel,
+  .settings-menu-panel {
+    top: 70px;
+    right: 15px;
+    width: calc(100vw - 30px);
+    max-width: 350px;
+  }
+
+  .screenshot-help-toggle {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .help-method h4 {
+    font-size: 13px;
+  }
+
+  .help-method ol,
+  .help-method ul {
+    font-size: 11px;
+  }
+
+  .help-method ul li {
+    font-size: 10px;
+  }
+
+  .help-note p {
+    font-size: 11px;
+  }
+
+  .screenshot-help-content kbd {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+}

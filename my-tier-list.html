@@ -8,11 +8,45 @@
     <link rel="stylesheet" href="style-options.css" />
     <link rel="stylesheet" href="gradient-backgrounds.css" />
     <link rel="stylesheet" href="comments-styles.css" />
+    <link rel="stylesheet" href="fix-overlap.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
-    <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
+    <script src="libs/sortable/Sortable.min.js"></script>
+    <script src="libs/html2canvas/html2canvas.min.js"></script>
+    <script src="libs/masonry/masonry.pkgd.min.js"></script>
+    <script src="libs/imagesloaded/imagesloaded.pkgd.min.js"></script>
+
+    <!-- Markdown 渲染库 - 多CDN备份 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+      // CDN备份机制
+      if (typeof marked === 'undefined') {
+        console.warn('主CDN加载失败，尝试备用CDN...');
+        document.write('<script src="https://unpkg.com/marked/marked.min.js"><\/script>');
+      }
+    </script>
+    <script>
+      // 最终检查
+      setTimeout(() => {
+        if (typeof marked === 'undefined') {
+          console.error('所有CDN都加载失败！Markdown功能将不可用');
+        } else {
+          console.log('marked库加载成功，版本:', marked.getDefaults ? 'v4+' : '未知');
+        }
+      }, 100);
+    </script>
+
+    <!-- 代码高亮库 -->
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" />
+
+    <!-- Google Generative AI SDK -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
   </head>
   <body>
     <!-- 毛玻璃效果层 -->
@@ -53,11 +87,77 @@
         </div>
 
         <div class="settings-section">
+          <h3 class="settings-section-title">截图功能</h3>
+          <div class="screenshot-options">
+            <button id="toggle-screenshot-mode-btn" class="export-btn">
+              <i class="fas fa-camera"></i>
+              <span>启用截图模式</span>
+            </button>
+
+            <!-- 截图帮助折叠区域 -->
+            <div class="screenshot-help-section">
+              <button class="screenshot-help-toggle" id="screenshot-help-toggle">
+                <i class="fas fa-question-circle"></i>
+                <span>如何使用？</span>
+                <i class="fas fa-chevron-down toggle-icon"></i>
+              </button>
+
+              <div class="screenshot-help-content" id="screenshot-help-content">
+                <div class="help-method">
+                  <h4><i class="fas fa-desktop"></i> 方法一：Chrome开发者工具（推荐）</h4>
+                  <ol>
+                    <li>启用截图模式后，按 <kbd>F12</kbd> 打开开发者工具</li>
+                    <li>按 <kbd>Ctrl+Shift+P</kbd> (Windows) 或 <kbd>Cmd+Shift+P</kbd> (Mac) 打开命令面板</li>
+                    <li>
+                      输入 "screenshot" 或"截图"，选择以下选项之一：
+                      <ul>
+                        <li><strong>英文界面：</strong> "Capture full size screenshot"</li>
+                        <li><strong>中文界面：</strong> "捕获完整尺寸屏幕截图"</li>
+                      </ul>
+                    </li>
+                    <li>等待截图完成并自动下载</li>
+                    <li>完成后点击"退出截图模式"恢复正常</li>
+                  </ol>
+                </div>
+
+                <div class="help-method">
+                  <h4><i class="fas fa-mouse-pointer"></i> 方法二：节点截图</h4>
+                  <ol>
+                    <li>启用截图模式后，按 <kbd>F12</kbd> 打开开发者工具</li>
+                    <li>在Elements/元素面板中，右键点击想要截图的元素</li>
+                    <li>
+                      选择截图选项：
+                      <ul>
+                        <li><strong>英文界面：</strong> "Capture node screenshot"</li>
+                        <li><strong>中文界面：</strong> "捕获节点屏幕截图"</li>
+                      </ul>
+                    </li>
+                    <li>截图将自动下载</li>
+                  </ol>
+                </div>
+
+                <div class="help-method">
+                  <h4><i class="fas fa-keyboard"></i> 快捷键</h4>
+                  <p>按 <kbd>Ctrl+Alt+C</kbd> 快速切换截图模式</p>
+                </div>
+
+                <div class="help-note">
+                  <p>
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>提示：</strong>截图模式会临时修复背景显示问题，确保完整页面截图包含正确的背景效果。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <h3 class="settings-section-title">导出与分享</h3>
           <div class="export-options">
             <button id="export-image-btn" class="export-btn">
               <i class="fas fa-image"></i>
-              <span>导出为图片</span>
+              <span>Tier部分导出为图片</span>
             </button>
             <button id="export-json-btn" class="export-btn">
               <i class="fas fa-file-export"></i>
@@ -69,9 +169,19 @@
             </button>
             <button id="share-link-btn" class="export-btn">
               <i class="fas fa-share-alt"></i>
-              <span>生成分享链接</span>
+              <span>生成分享链接(不可用)</span>
             </button>
             <input type="file" id="import-file-input" accept=".json" style="display: none" />
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="settings-section-title">AI 分析</h3>
+          <div class="export-options">
+            <button id="generate-taste-report-btn" class="export-btn" title="让AI分析您的动画偏好">
+              <i class="fas fa-brain"></i>
+              <span>生成总结报告</span>
+            </button>
           </div>
         </div>
 
@@ -87,9 +197,6 @@
       <div id="background-settings-panel" class="background-settings-panel">
         <div class="background-panel-header">
           <h3><i class="fas fa-palette"></i> 背景与主题设置</h3>
-          <button class="background-panel-close" onclick="closeBackgroundPanel()">
-            <i class="fas fa-times"></i>
-          </button>
         </div>
         <div class="background-panel-content">
           <!-- 渐变主题选择 -->
@@ -221,9 +328,11 @@
                   </label>
                 </div>
                 <div class="blur-strength">
-                  <span class="settings-option-label">模糊强度</span>
+                  <div class="blur-strength-header">
+                    <span class="settings-option-label">模糊强度</span>
+                    <span class="blur-value">10px</span>
+                  </div>
                   <input type="range" id="blur-strength" min="0" max="20" value="10" class="blur-slider" />
-                  <span class="blur-value">10px</span>
                 </div>
               </div>
             </div>
@@ -888,6 +997,158 @@
       </div>
     </div>
 
+    <!-- API密钥设置区域 -->
+    <div class="api-key-standalone-section">
+      <div class="api-key-header">
+        <h3><i class="fas fa-key"></i> Gemini API 密钥设置</h3>
+        <div class="api-key-status" id="api-key-status">
+          <span class="status-indicator" id="status-indicator">
+            <i class="fas fa-times-circle"></i>
+          </span>
+          <span class="status-text" id="status-text">未设置</span>
+        </div>
+      </div>
+
+      <div class="api-key-content">
+        <p class="api-key-description">设置 Gemini API 密钥以启用AI功能</p>
+        <div class="api-key-security-notice">
+          <i class="fas fa-shield-alt"></i>
+          <span
+            style="cursor: help"
+            title="以上是AI的官方说辞，来自一个使用prompt当编程语言的开发者,我也看不懂代码XD,不过我拷打了AI,有让它发毒誓,大概率没问题^^"
+          >
+            您的API密钥仅保存在本地浏览器中，不会上传到任何服务器</span
+          >
+        </div>
+
+        <div class="api-key-input-group">
+          <input
+            type="password"
+            id="main-gemini-api-key"
+            class="api-key-input"
+            placeholder="请输入您的 Gemini API 密钥"
+          />
+          <button type="button" id="main-toggle-api-key-visibility" class="toggle-visibility-btn" title="显示/隐藏密钥">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+
+        <div class="model-selection-group">
+          <label for="main-model-select" class="model-label"> <i class="fas fa-brain"></i> AI模型 </label>
+          <select id="main-model-select" class="model-select">
+            <option value="gemini-2.5-flash-preview-05-20">gemini-2.5-flash-preview-05-20</option>
+            <option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash-preview-04-17</option>
+            <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp</option>
+            <option value="gemini-2.5-pro-preview-05-06">gemini-2.5-pro-preview-05-06 (付费KEY用)</option>
+            <option value="custom">自定义模型</option>
+          </select>
+        </div>
+
+        <div class="custom-model-group" id="custom-model-group" style="display: none">
+          <label for="custom-model-input" class="model-label"> <i class="fas fa-edit"></i> 自定义模型 </label>
+          <input type="text" id="custom-model-input" class="api-key-input" placeholder="如：gemini-pro-preview-05-06" />
+        </div>
+
+        <div class="api-key-actions">
+          <button id="main-save-api-key-btn" class="api-key-btn primary">
+            <i class="fas fa-save"></i>
+            <span>保存</span>
+          </button>
+          <button id="main-test-api-key-btn" class="api-key-btn secondary" style="display: none">
+            <i class="fas fa-vial"></i>
+            <span>测试连接</span>
+          </button>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-key-btn secondary">
+            <i class="fas fa-external-link-alt"></i>
+            <span>获取密钥</span>
+          </a>
+        </div>
+
+        <div class="api-key-help">
+          <details>
+            <summary><i class="fas fa-question-circle"></i> 如何获取？</summary>
+            <ol>
+              <li>点击"获取密钥"链接</li>
+              <li>使用Google账号登录</li>
+              <li>创建API Key</li>
+              <li>复制并粘贴到输入框</li>
+              <li>点击"保存"完成设置</li>
+            </ol>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI总结报告区域 - 全新Glassmorphism设计 -->
+    <div class="taste-report-standalone-section" id="main-taste-report-section" style="display: none">
+      <div class="taste-report-header">
+        <!-- 标题行 -->
+        <div class="taste-report-title-row">
+          <h3><i class="fas fa-brain"></i> AI总结报告</h3>
+          <div class="role-selector-container">
+            <label for="role-select" class="role-select-label"><i class="fas fa-user-astronaut"></i> 选择AI角色:</label>
+            <select id="role-select" class="role-select">
+              <!-- Options will be populated by JavaScript -->
+            </select>
+          </div>
+        </div>
+
+        <!-- 控制按钮行 -->
+        <div class="taste-report-controls">
+          <button id="main-generate-taste-report-btn" class="taste-report-btn primary">
+            <i class="fas fa-magic"></i>
+            <span>生成总结报告</span>
+          </button>
+          <!-- 隐藏查看完整Prompt功能 -->
+          <!--
+          <button id="main-view-prompt-btn" class="taste-report-btn secondary" style="display: none">
+            <i class="fas fa-code"></i>
+            <span>查看完整Prompt</span>
+          </button>
+          -->
+          <button
+            id="clear-cache-btn"
+            class="taste-report-btn secondary"
+            title="清理动画数据缓存，下次生成时重新获取最新数据"
+          >
+            <i class="fas fa-trash-alt"></i>
+            <span>清理缓存</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="taste-report-content" id="main-taste-report-content">
+        <!-- AI角色Banner -->
+        <div class="ai-role-banner" id="ai-role-banner">
+          <div class="banner-background">
+            <img
+              src="https://files.catbox.moe/48ttww.png"
+              alt="AI角色"
+              class="banner-character-image"
+              id="banner-character-image"
+            />
+            <div class="banner-overlay"></div>
+          </div>
+          <div class="banner-content">
+            <div class="banner-text">
+              <h3 class="banner-title" id="banner-title">MESUGAKI</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="taste-report-placeholder">
+          <i class="fas fa-lightbulb"></i>
+          <h4>AI偏好分析</h4>
+          <p>添加一些动画到您的分级列表，然后点击"生成总结报告"，让AI分析您的动画偏好！</p>
+          <ul>
+            <li>🎯 个性化分析您的动画偏好</li>
+            <li>📊 基于制作公司、声优、标签的深度解析</li>
+            <li>🌊 支持流式传输，实时显示生成过程</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- 导出图片对话框 -->
     <div id="export-image-dialog" class="export-dialog">
       <div class="export-dialog-content">
@@ -947,6 +1208,100 @@
         </div>
       </div>
     </div>
+
+    <!-- 总结报告对话框 -->
+    <div
+      id="taste-report-dialog"
+      class="export-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="taste-report-title"
+    >
+      <div class="export-dialog-content">
+        <button class="export-dialog-close" aria-label="关闭总结报告对话框"><i class="fas fa-times"></i></button>
+        <h3 id="taste-report-title" class="export-dialog-title">您的动画总结报告</h3>
+        <div id="taste-report-body" class="export-dialog-body">
+          <!-- 初始状态 -->
+          <div class="taste-report-setup">
+            <div class="api-key-section">
+              <h4><i class="fas fa-key"></i> API 密钥设置</h4>
+              <p class="api-key-description">需要 Google Gemini API 密钥来生成总结报告。</p>
+              <div class="api-key-security-notice">
+                <i class="fas fa-shield-alt"></i>
+                <span>您的API密钥仅保存在本地浏览器中，不会上传到任何服务器</span>
+              </div>
+              <div class="api-key-input-group">
+                <input
+                  type="password"
+                  id="gemini-api-key"
+                  class="api-key-input"
+                  placeholder="请输入您的 Gemini API 密钥"
+                />
+                <button
+                  type="button"
+                  id="toggle-api-key-visibility"
+                  class="toggle-visibility-btn"
+                  title="显示/隐藏密钥"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+              <div class="api-key-actions">
+                <button id="save-api-key-btn" class="api-key-btn primary">
+                  <i class="fas fa-save"></i>
+                  <span>保存密钥</span>
+                </button>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-key-btn secondary">
+                  <i class="fas fa-external-link-alt"></i>
+                  <span>获取免费API密钥</span>
+                </a>
+              </div>
+              <div class="api-key-help">
+                <details>
+                  <summary><i class="fas fa-question-circle"></i> 如何获取API密钥？</summary>
+                  <ol>
+                    <li>点击上方"获取免费API密钥"链接</li>
+                    <li>使用Google账号登录</li>
+                    <li>点击"Create API Key"创建密钥</li>
+                    <li>复制生成的密钥并粘贴到上方输入框</li>
+                    <li>点击"保存密钥"完成设置</li>
+                  </ol>
+                </details>
+              </div>
+            </div>
+            <div class="generate-report-section" style="display: none">
+              <h4><i class="fas fa-brain"></i> 生成总结报告</h4>
+              <p>AI 将分析您的 Tier List 中的动画，生成个性化的总结报告。</p>
+              <button id="start-analysis-btn" class="start-analysis-btn">
+                <i class="fas fa-magic"></i>
+                <span>开始分析我的偏好</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 隐藏查看完整Prompt对话框功能 -->
+    <!--
+    <div id="view-prompt-dialog" class="export-dialog">
+      <div class="export-dialog-content">
+        <button class="export-dialog-close"><i class="fas fa-times"></i></button>
+        <h3 class="export-dialog-title">完整LLM Prompt</h3>
+        <div class="export-dialog-body">
+          <div class="prompt-content">
+            <pre id="prompt-text" class="prompt-text"></pre>
+          </div>
+        </div>
+        <div class="export-dialog-actions">
+          <button id="copy-prompt-btn" class="export-dialog-btn primary">
+            <i class="fas fa-copy"></i>
+            <span>复制Prompt</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    -->
 
     <!-- 动画详情对话框 -->
     <div id="anime-detail-dialog" class="export-dialog">
