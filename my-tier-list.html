@@ -176,12 +176,22 @@
         </div>
 
         <div class="settings-section">
-          <h3 class="settings-section-title">AI 分析</h3>
-          <div class="export-options">
-            <button id="generate-taste-report-btn" class="export-btn" title="让AI分析您的动画偏好">
-              <i class="fas fa-brain"></i>
-              <span>生成总结报告</span>
+          <h3 class="settings-section-title">存储管理</h3>
+          <div class="storage-options">
+            <button id="settings-clear-cache-btn" class="export-btn" title="清理未使用的图片缓存和其他临时文件">
+              <i class="fas fa-broom"></i>
+              <span>清理缓存</span>
             </button>
+            <div class="storage-stats" id="storage-stats">
+              <div class="stats-item">
+                <span class="stats-label">图片缓存:</span>
+                <span class="stats-value" id="image-cache-count">-</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">存储占用:</span>
+                <span class="stats-value" id="storage-size">-</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -312,13 +322,43 @@
                   <p>背景预览</p>
                 </div>
               </div>
-              <div class="bg-controls">
-                <label for="bg-file-input" class="bg-upload-btn">
+
+              <!-- 背景图片上传方式选择 -->
+              <div class="bg-method-selector">
+                <button class="bg-method-btn active" data-method="file">
                   <i class="fas fa-upload"></i>
-                  <span>上传背景图片</span>
-                </label>
-                <input type="file" id="bg-file-input" accept="image/*" style="display: none" />
+                  本地上传
+                </button>
+                <button class="bg-method-btn" data-method="url">
+                  <i class="fas fa-link"></i>
+                  图床URL
+                </button>
               </div>
+
+              <!-- 本地上传方式 -->
+              <div class="bg-method active" data-method="file">
+                <div class="bg-controls">
+                  <label for="bg-file-input" class="bg-upload-btn">
+                    <i class="fas fa-upload"></i>
+                    <span>上传背景图片</span>
+                  </label>
+                  <input type="file" id="bg-file-input" accept="image/*" style="display: none" />
+                </div>
+              </div>
+
+              <!-- 图床URL方式 -->
+              <div class="bg-method" data-method="url">
+                <div class="bg-url-controls">
+                  <div class="bg-url-input-container">
+                    <input type="url" id="bg-url-input" placeholder="请输入背景图片URL（支持 https:// 开头的链接）" class="bg-url-input">
+                    <button class="bg-url-set-btn">设置背景</button>
+                  </div>
+                  <div class="bg-url-tips">
+                    <p><i class="fas fa-info-circle"></i> 推荐使用高分辨率图片作为背景</p>
+                  </div>
+                </div>
+              </div>
+            </div>
               <div class="bg-effects">
                 <div class="settings-option">
                   <span class="settings-option-label">毛玻璃效果</span>
@@ -1099,13 +1139,14 @@
             <i class="fas fa-magic"></i>
             <span>生成总结报告</span>
           </button>
-          <!-- 隐藏查看完整Prompt功能 -->
-          <!--
           <button id="main-view-prompt-btn" class="taste-report-btn secondary" style="display: none">
             <i class="fas fa-code"></i>
             <span>查看完整Prompt</span>
           </button>
-          -->
+          <button id="main-view-raw-output-btn" class="taste-report-btn secondary" style="display: none">
+            <i class="fas fa-file-alt"></i>
+            <span>查看原始输出</span>
+          </button>
           <button
             id="clear-cache-btn"
             class="taste-report-btn secondary"
@@ -1282,8 +1323,7 @@
       </div>
     </div>
 
-    <!-- 隐藏查看完整Prompt对话框功能 -->
-    <!--
+    <!-- 查看完整Prompt对话框 -->
     <div id="view-prompt-dialog" class="export-dialog">
       <div class="export-dialog-content">
         <button class="export-dialog-close"><i class="fas fa-times"></i></button>
@@ -1301,7 +1341,25 @@
         </div>
       </div>
     </div>
-    -->
+
+    <!-- 查看原始输出对话框 -->
+    <div id="view-raw-output-dialog" class="export-dialog">
+      <div class="export-dialog-content">
+        <button class="export-dialog-close"><i class="fas fa-times"></i></button>
+        <h3 class="export-dialog-title">LLM原始输出内容</h3>
+        <div class="export-dialog-body">
+          <div class="prompt-content">
+            <pre id="raw-output-text" class="prompt-text"></pre>
+          </div>
+        </div>
+        <div class="export-dialog-actions">
+          <button id="copy-raw-output-btn" class="export-dialog-btn primary">
+            <i class="fas fa-copy"></i>
+            <span>复制原始输出</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 动画详情对话框 -->
     <div id="anime-detail-dialog" class="export-dialog">

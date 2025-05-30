@@ -3729,7 +3729,7 @@ body.sortable-dragging .tier-row:hover {
   height: 100%;
   object-fit: cover;
   opacity: 0.8;
-  filter: blur(8px) brightness(0.8) saturate(1.2);
+  filter: blur(4px) brightness(0.8) saturate(1.2);
   transition: all 0.5s ease;
 }
 
@@ -4515,4 +4515,359 @@ body.sortable-dragging .tier-row:hover {
   color: #b0b0b0;
   margin-bottom: 2px;
   line-height: 1.3;
+}
+
+/* ==================== 图床URL上传功能样式 ==================== */
+
+/* 上传方式选择器 */
+.upload-method-selector {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 25px;
+}
+
+.method-btn {
+  flex: 1;
+  padding: 10px 20px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.method-btn.active {
+  background-color: rgba(61, 61, 110, 0.8);
+  color: #fff;
+}
+
+.method-btn:hover {
+  color: #fff;
+  background-color: rgba(61, 61, 110, 0.5);
+}
+
+/* 上传方式内容 */
+.upload-method {
+  display: none;
+}
+
+.upload-method.active {
+  display: block;
+}
+
+/* 图床URL相关样式 */
+.url-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.url-input-container {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+}
+
+.url-label {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.url-input {
+  flex: 1;
+  padding: 10px 15px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.url-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.url-preview-btn {
+  padding: 10px 20px;
+  background-color: rgba(61, 61, 110, 0.8);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.url-preview-btn:hover {
+  background-color: rgba(61, 61, 110, 1);
+}
+
+.url-preview-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.url-tips {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 15px;
+  border-left: 3px solid rgba(61, 61, 110, 0.8);
+}
+
+.url-tips p {
+  margin: 0 0 10px 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.url-tips ul {
+  margin: 0;
+  padding-left: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.url-tips li {
+  margin-bottom: 5px;
+}
+
+.url-tips strong {
+  color: #fff;
+}
+
+.url-preview {
+  flex: 1;
+  min-height: 200px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.preview-error {
+  text-align: center;
+  color: #f44336;
+  padding: 20px;
+}
+
+.preview-error i {
+  font-size: 48px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.preview-error p {
+  margin: 10px 0 5px 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.preview-error small {
+  font-size: 12px;
+  color: rgba(244, 67, 54, 0.7);
+}
+
+.url-status {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+.compress-info {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+.url-add-btn {
+  background-color: rgba(61, 61, 110, 0.8);
+  color: #fff;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.url-add-btn:hover {
+  background-color: rgba(61, 61, 110, 1);
+  transform: translateY(-2px);
+}
+
+.url-add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==================== 背景图片URL功能样式 ==================== */
+
+/* 背景图片上传方式选择器 */
+.bg-method-selector {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+}
+
+.bg-method-btn {
+  flex: 1;
+  padding: 8px 16px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bg-method-btn.active {
+  background-color: rgba(61, 61, 110, 0.8);
+  color: #fff;
+}
+
+.bg-method-btn:hover {
+  color: #fff;
+  background-color: rgba(61, 61, 110, 0.5);
+}
+
+/* 背景图片上传方式内容 */
+.bg-method {
+  display: none;
+}
+
+.bg-method.active {
+  display: block;
+}
+
+/* 背景图片URL控制区域 */
+.bg-url-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bg-url-input-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.bg-url-input {
+  flex: 1;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+}
+
+.bg-url-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.bg-url-set-btn {
+  padding: 8px 16px;
+  background-color: rgba(61, 61, 110, 0.8);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.bg-url-set-btn:hover {
+  background-color: rgba(61, 61, 110, 1);
+}
+
+.bg-url-set-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bg-url-tips {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  border-left: 3px solid rgba(61, 61, 110, 0.8);
+}
+
+.bg-url-tips p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==================== 存储管理样式 ==================== */
+
+.storage-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.storage-stats {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 3px solid rgba(61, 61, 110, 0.8);
+}
+
+.stats-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.stats-item:last-child {
+  margin-bottom: 0;
+}
+
+.stats-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+}
+
+.stats-value {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
 }
