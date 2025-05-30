@@ -269,6 +269,267 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   };
 
+  // 图片压缩函数
+  function compressImage(file, quality = 0.7, maxWidth = 800, maxHeight = 600) {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = function () {
+        // 计算压缩后的尺寸
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width *= ratio;
+          height *= ratio;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // 绘制压缩后的图片
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // 转换为DataURL
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+
+      img.onerror = () => reject(new Error('图片加载失败'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  // 图片去重存储管理
+  const ImageStorage = {
+    // 存储图片数据的映射 {hash: dataUrl}
+    imageData: new Map(),
+    // 存储图片引用计数 {hash: count}
+    refCount: new Map(),
+
+    // 计算图片hash值
+    async getImageHash(dataUrl) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(dataUrl.substring(0, 1000)); // 取前1000字符计算hash
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+        .substring(0, 16);
+    },
+
+    // 存储图片并返回引用ID
+    async storeImage(dataUrl) {
+      const hash = await this.getImageHash(dataUrl);
+
+      if (!this.imageData.has(hash)) {
+        this.imageData.set(hash, dataUrl);
+        this.refCount.set(hash, 0);
+      }
+
+      this.refCount.set(hash, this.refCount.get(hash) + 1);
+      return hash;
+    },
+
+    // 获取图片数据
+    getImage(hash) {
+      return this.imageData.get(hash);
+    },
+
+    // 释放图片引用
+    releaseImage(hash) {
+      if (this.refCount.has(hash)) {
+        const count = this.refCount.get(hash) - 1;
+        if (count <= 0) {
+          this.imageData.delete(hash);
+          this.refCount.delete(hash);
+        } else {
+          this.refCount.set(hash, count);
+        }
+      }
+    },
+
+    // 保存到localStorage
+    save() {
+      try {
+        localStorage.setItem(
+          'anime-image-storage',
+          JSON.stringify({
+            imageData: Array.from(this.imageData.entries()),
+            refCount: Array.from(this.refCount.entries()),
+          }),
+        );
+      } catch (e) {
+        console.warn('图片存储空间不足，正在清理...');
+        this.cleanup();
+      }
+    },
+
+    // 从localStorage加载
+    load() {
+      try {
+        const stored = localStorage.getItem('anime-image-storage');
+        if (stored) {
+          const data = JSON.parse(stored);
+          this.imageData = new Map(data.imageData || []);
+          this.refCount = new Map(data.refCount || []);
+        }
+      } catch (e) {
+        console.error('加载图片存储失败:', e);
+        this.imageData.clear();
+        this.refCount.clear();
+      }
+    },
+
+    // 清理未使用的图片
+    cleanup() {
+      const toDelete = [];
+      for (const [hash, count] of this.refCount.entries()) {
+        if (count <= 0) {
+          toDelete.push(hash);
+        }
+      }
+      toDelete.forEach(hash => {
+        this.imageData.delete(hash);
+        this.refCount.delete(hash);
+      });
+      this.save();
+      return toDelete.length;
+    },
+
+    // 手动清理所有未使用的图片缓存
+    manualCleanup() {
+      const deletedCount = this.cleanup();
+
+      // 同时清理其他缓存
+      const cacheKeys = [
+        'anime-tier-list-data',
+        'anime-tier-list-comments',
+        'anime-tier-list-settings',
+        'anime-tier-list-background-settings',
+      ];
+
+      let totalCleaned = deletedCount;
+
+      // 清理localStorage中的其他缓存项
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('anime-cache-') || key.startsWith('bgm-cache-'))) {
+          localStorage.removeItem(key);
+          totalCleaned++;
+        }
+      }
+
+      return {
+        unusedImages: deletedCount,
+        totalCleaned: totalCleaned,
+      };
+    },
+
+    // 获取存储统计信息
+    getStorageStats() {
+      const stats = {
+        totalImages: this.imageData.size,
+        usedImages: 0,
+        unusedImages: 0,
+        totalSize: 0,
+      };
+
+      for (const [hash, count] of this.refCount.entries()) {
+        if (count > 0) {
+          stats.usedImages++;
+        } else {
+          stats.unusedImages++;
+        }
+
+        const imageData = this.imageData.get(hash);
+        if (imageData) {
+          stats.totalSize += imageData.length;
+        }
+      }
+
+      return stats;
+    },
+  };
+
+  // 初始化图片存储
+  ImageStorage.load();
+
+  // 设置菜单中的清理缓存功能
+  function handleSettingsClearCache() {
+    // 显示确认对话框
+    const confirmed = confirm(
+      '确定要清理缓存吗？\n\n这将清理：\n• 未使用的图片缓存\n• API数据缓存\n• 临时文件\n\n注意：正在使用的图片不会被删除',
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // 执行清理
+      const result = ImageStorage.manualCleanup();
+
+      // 更新存储统计
+      updateStorageStats();
+
+      // 显示清理结果
+      alert(
+        `缓存清理完成！\n\n清理统计：\n• 未使用图片：${result.unusedImages} 个\n• 总清理项目：${result.totalCleaned} 个`,
+      );
+    } catch (error) {
+      console.error('清理缓存失败:', error);
+      alert('清理缓存失败，请重试');
+    }
+  }
+
+  // 更新存储统计信息
+  function updateStorageStats() {
+    const imageCacheCountEl = document.getElementById('image-cache-count');
+    const storageSizeEl = document.getElementById('storage-size');
+
+    if (!imageCacheCountEl || !storageSizeEl) return;
+
+    try {
+      // 获取图片存储统计
+      const stats = ImageStorage.getStorageStats();
+
+      // 计算localStorage总使用量
+      let totalSize = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          totalSize += localStorage[key].length;
+        }
+      }
+
+      // 更新显示
+      imageCacheCountEl.textContent = `${stats.usedImages}/${stats.totalImages}`;
+      storageSizeEl.textContent = formatBytes(totalSize);
+
+      // 如果有未使用的图片，显示警告色
+      if (stats.unusedImages > 0) {
+        imageCacheCountEl.style.color = '#ff9800';
+        imageCacheCountEl.title = `有 ${stats.unusedImages} 个未使用的图片可以清理`;
+      } else {
+        imageCacheCountEl.style.color = '#4CAF50';
+        imageCacheCountEl.title = '所有图片都在使用中';
+      }
+    } catch (error) {
+      console.error('更新存储统计失败:', error);
+      imageCacheCountEl.textContent = '错误';
+      storageSizeEl.textContent = '错误';
+    }
+  }
+
+  // 格式化字节数为可读格式
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
   // 获取动画详情 - 暴露给全局以便comments.js使用
   window.fetchAnimeDetail = async function (animeId) {
     try {
@@ -959,6 +1220,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const shareBtn = document.getElementById('share-link-btn');
     const importFileInput = document.getElementById('import-file-input');
 
+    // 存储管理按钮
+    const settingsClearCacheBtn = document.getElementById('settings-clear-cache-btn');
+    const imageCacheCountEl = document.getElementById('image-cache-count');
+    const storageSizeEl = document.getElementById('storage-size');
+
     if (!settingsBtn || !settingsPanel || !titleToggle) {
       console.error('设置菜单元素未找到');
       return;
@@ -1091,6 +1357,19 @@ document.addEventListener('DOMContentLoaded', function () {
     if (downloadImageBtn) {
       downloadImageBtn.addEventListener('click', downloadImage);
     }
+
+    // 设置菜单中的清理缓存功能
+    if (settingsClearCacheBtn) {
+      settingsClearCacheBtn.addEventListener('click', function () {
+        handleSettingsClearCache();
+      });
+    }
+
+    // 更新存储统计信息
+    updateStorageStats();
+
+    // 定期更新存储统计（每30秒）
+    setInterval(updateStorageStats, 30000);
   }
 
   // 初始化设置菜单
@@ -1999,35 +2278,86 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="tab-content" data-tab="upload">
           <div class="upload-container">
             <div class="upload-header">
-              <h4>上传自定义图片</h4>
-              <p class="upload-instruction">选择一张图片并添加标题，然后点击"确认添加"</p>
+              <h4>添加自定义图片</h4>
+              <p class="upload-instruction">选择上传本地图片或使用图床URL</p>
             </div>
-            <div class="upload-content">
-              <div class="upload-left">
-                <div class="file-input-container">
-                  <input type="file" id="image-upload" accept="image/*" class="file-input">
-                  <label for="image-upload" class="file-label">
-                    <i class="fas fa-upload"></i>
-                    选择图片文件
-                  </label>
+
+            <!-- 上传方式选择 -->
+            <div class="upload-method-selector">
+              <button class="method-btn active" data-method="file">
+                <i class="fas fa-upload"></i>
+                本地上传
+              </button>
+              <button class="method-btn" data-method="url">
+                <i class="fas fa-link"></i>
+                图床URL
+              </button>
+            </div>
+
+            <!-- 本地上传方式 -->
+            <div class="upload-method active" data-method="file">
+              <div class="upload-content">
+                <div class="upload-left">
+                  <div class="file-input-container">
+                    <input type="file" id="image-upload" accept="image/*" class="file-input">
+                    <label for="image-upload" class="file-label">
+                      <i class="fas fa-upload"></i>
+                      选择图片文件
+                    </label>
+                  </div>
+                  <div class="title-input-container">
+                    <label for="image-title" class="title-label">图片标题</label>
+                    <input type="text" id="image-title" placeholder="请输入标题（可选）" class="title-input">
+                  </div>
+                </div>
+                <div class="upload-preview">
+                  <div class="preview-placeholder">
+                    <i class="fas fa-image"></i>
+                    <p>图片预览区</p>
+                  </div>
+                </div>
+              </div>
+              <div class="upload-footer">
+                <button class="upload-btn">
+                  <i class="fas fa-check"></i>
+                  确认添加
+                </button>
+              </div>
+            </div>
+
+            <!-- 图床URL方式 -->
+            <div class="upload-method" data-method="url">
+              <div class="url-input-section">
+                <div class="url-input-container">
+                  <label for="image-url" class="url-label">图片URL</label>
+                  <input type="url" id="image-url" placeholder="请输入图片链接（支持 https:// 开头的链接）" class="url-input">
+                  <button class="url-preview-btn">预览</button>
                 </div>
                 <div class="title-input-container">
-                  <label for="image-title" class="title-label">图片标题</label>
-                  <input type="text" id="image-title" placeholder="请输入标题（可选）" class="title-input">
+                  <label for="url-image-title" class="title-label">图片标题</label>
+                  <input type="text" id="url-image-title" placeholder="请输入标题（可选）" class="title-input">
+                </div>
+                <div class="url-tips">
+                  <p><i class="fas fa-info-circle"></i> 推荐图床：</p>
+                  <ul>
+                    <li><strong>imgur.com</strong> - 免费，支持匿名上传</li>
+                    <li><strong>catbox.moe</strong> - 免费，无需注册</li>
+                    <li><strong>sm.ms</strong> - 免费，支持API</li>
+                  </ul>
                 </div>
               </div>
-              <div class="upload-preview">
+              <div class="url-preview">
                 <div class="preview-placeholder">
-                  <i class="fas fa-image"></i>
-                  <p>图片预览区</p>
+                  <i class="fas fa-link"></i>
+                  <p>输入URL后点击预览</p>
                 </div>
               </div>
-            </div>
-            <div class="upload-footer">
-              <button class="upload-btn">
-                <i class="fas fa-check"></i>
-                确认添加
-              </button>
+              <div class="upload-footer">
+                <button class="url-add-btn" disabled>
+                  <i class="fas fa-check"></i>
+                  确认添加
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2096,13 +2426,44 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始化月份按钮
     initMonthButtons();
 
-    // 上传图片事件
+    // 上传方式切换
+    const methodBtns = searchPanel.querySelectorAll('.method-btn');
+    const uploadMethods = searchPanel.querySelectorAll('.upload-method');
+
+    methodBtns.forEach(btn => {
+      btn.addEventListener('click', function () {
+        const method = this.getAttribute('data-method');
+
+        // 切换按钮样式
+        methodBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        // 切换内容
+        uploadMethods.forEach(content => {
+          if (content.getAttribute('data-method') === method) {
+            content.classList.add('active');
+          } else {
+            content.classList.remove('active');
+          }
+        });
+      });
+    });
+
+    // 本地上传相关元素
     const fileInput = searchPanel.querySelector('#image-upload');
-    const titleInput = searchPanel.querySelector('.title-input');
+    const titleInput = searchPanel.querySelector('#image-title');
     const uploadBtn = searchPanel.querySelector('.upload-btn');
     const previewContainer = searchPanel.querySelector('.upload-preview');
 
+    // 图床URL相关元素
+    const urlInput = searchPanel.querySelector('#image-url');
+    const urlTitleInput = searchPanel.querySelector('#url-image-title');
+    const urlPreviewBtn = searchPanel.querySelector('.url-preview-btn');
+    const urlAddBtn = searchPanel.querySelector('.url-add-btn');
+    const urlPreviewContainer = searchPanel.querySelector('.url-preview');
+
     let selectedFile = null;
+    let previewedImageUrl = null;
 
     fileInput.addEventListener('change', function (e) {
       const file = e.target.files[0];
@@ -2110,23 +2471,45 @@ document.addEventListener('DOMContentLoaded', function () {
 
       selectedFile = file;
 
-      // 显示预览
+      // 显示预览和压缩信息
       const reader = new FileReader();
       reader.onload = function (event) {
+        // 先显示原图预览
         previewContainer.innerHTML = `
           <div class="preview-image-container">
             <img src="${event.target.result}" class="preview-image">
             <div class="image-info">
               <span class="file-name">${file.name}</span>
-              <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
+              <span class="file-size">原始: ${(file.size / 1024).toFixed(1)} KB</span>
+              <span class="compress-info">正在计算压缩后大小...</span>
             </div>
           </div>
         `;
+
+        // 计算压缩后大小
+        compressImage(file, 0.7, 800, 600)
+          .then(compressedDataUrl => {
+            const compressedSize = Math.round((compressedDataUrl.length * 0.75) / 1024); // 估算base64大小
+            const compressionRatio = (((file.size / 1024 - compressedSize) / (file.size / 1024)) * 100).toFixed(1);
+
+            const compressInfo = previewContainer.querySelector('.compress-info');
+            if (compressInfo) {
+              compressInfo.innerHTML = `压缩后: ${compressedSize} KB (节省 ${compressionRatio}%)`;
+              compressInfo.style.color = '#4CAF50';
+            }
+          })
+          .catch(() => {
+            const compressInfo = previewContainer.querySelector('.compress-info');
+            if (compressInfo) {
+              compressInfo.innerHTML = '压缩预览失败';
+              compressInfo.style.color = '#f44336';
+            }
+          });
       };
       reader.readAsDataURL(file);
     });
 
-    uploadBtn.addEventListener('click', function () {
+    uploadBtn.addEventListener('click', async function () {
       if (!selectedFile) {
         alert('请先选择图片文件');
         return;
@@ -2134,10 +2517,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const title = titleInput.value.trim() || '自定义图片';
 
-      // 读取图片为DataURL
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const dataUrl = e.target.result;
+      try {
+        // 显示上传中状态
+        uploadBtn.textContent = '处理中...';
+        uploadBtn.disabled = true;
+
+        // 压缩图片
+        const compressedDataUrl = await compressImage(selectedFile, 0.7, 800, 600);
+
+        // 存储图片并获取引用ID
+        const imageHash = await ImageStorage.storeImage(compressedDataUrl);
 
         // 添加本地图片
         if (currentTier !== null && currentIndex !== null) {
@@ -2146,15 +2535,22 @@ document.addEventListener('DOMContentLoaded', function () {
             tiers[currentTier].push(null);
           }
 
+          // 如果是编辑模式，先释放旧图片引用
+          if (isEditMode && tiers[currentTier][currentIndex]?.imageHash) {
+            ImageStorage.releaseImage(tiers[currentTier][currentIndex].imageHash);
+          }
+
           tiers[currentTier][currentIndex] = {
-            img: dataUrl,
+            img: compressedDataUrl, // 保持兼容性，仍然存储完整URL
+            imageHash: imageHash, // 新增：存储图片引用ID
             title: title,
             isLocal: true,
             source: 'upload',
           };
           localStorage.setItem('last-add-source', 'upload'); // 记录添加来源
 
-          // 保存到本地存储
+          // 保存图片存储和tier数据
+          ImageStorage.save();
           saveToLocalStorage();
 
           // 清除Tag Cloud缓存，因为添加了新动画
@@ -2172,8 +2568,127 @@ document.addEventListener('DOMContentLoaded', function () {
             searchPanel.style.display = 'none';
           }, 300);
         }
+      } catch (error) {
+        console.error('图片上传失败:', error);
+        alert('图片处理失败，请重试');
+      } finally {
+        // 恢复按钮状态
+        uploadBtn.textContent = '上传图片';
+        uploadBtn.disabled = false;
+      }
+    });
+
+    // 图床URL预览功能
+    urlPreviewBtn.addEventListener('click', function () {
+      const url = urlInput.value.trim();
+      if (!url) {
+        alert('请输入图片URL');
+        return;
+      }
+
+      // 验证URL格式
+      if (!url.startsWith('https://')) {
+        alert('为了安全，只支持 https:// 开头的图片链接');
+        return;
+      }
+
+      // 显示加载状态
+      urlPreviewBtn.textContent = '加载中...';
+      urlPreviewBtn.disabled = true;
+
+      // 创建图片元素进行预览
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      img.onload = function () {
+        // 预览成功
+        urlPreviewContainer.innerHTML = `
+          <div class="preview-image-container">
+            <img src="${url}" class="preview-image" crossorigin="anonymous">
+            <div class="image-info">
+              <span class="file-name">外部图片</span>
+              <span class="file-size">URL: ${url.length > 50 ? url.substring(0, 50) + '...' : url}</span>
+              <span class="url-status" style="color: #4CAF50;">✓ 图片加载成功</span>
+            </div>
+          </div>
+        `;
+
+        previewedImageUrl = url;
+        urlAddBtn.disabled = false;
+
+        // 恢复按钮状态
+        urlPreviewBtn.textContent = '预览';
+        urlPreviewBtn.disabled = false;
       };
-      reader.readAsDataURL(selectedFile);
+
+      img.onerror = function () {
+        // 预览失败
+        urlPreviewContainer.innerHTML = `
+          <div class="preview-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>图片加载失败</p>
+            <small>请检查URL是否正确，或图片是否支持跨域访问</small>
+          </div>
+        `;
+
+        previewedImageUrl = null;
+        urlAddBtn.disabled = true;
+
+        // 恢复按钮状态
+        urlPreviewBtn.textContent = '预览';
+        urlPreviewBtn.disabled = false;
+      };
+
+      img.src = url;
+    });
+
+    // 图床URL添加功能
+    urlAddBtn.addEventListener('click', function () {
+      if (!previewedImageUrl) {
+        alert('请先预览图片');
+        return;
+      }
+
+      const title = urlTitleInput.value.trim() || '图床图片';
+
+      // 添加图床图片
+      if (currentTier !== null && currentIndex !== null) {
+        // 确保数组长度足够
+        while (tiers[currentTier].length <= currentIndex) {
+          tiers[currentTier].push(null);
+        }
+
+        // 如果是编辑模式，先释放旧图片引用
+        if (isEditMode && tiers[currentTier][currentIndex]?.imageHash) {
+          ImageStorage.releaseImage(tiers[currentTier][currentIndex].imageHash);
+        }
+
+        tiers[currentTier][currentIndex] = {
+          img: previewedImageUrl,
+          title: title,
+          isLocal: false,
+          source: 'url',
+        };
+        localStorage.setItem('last-add-source', 'url'); // 记录添加来源
+
+        // 保存到本地存储
+        saveToLocalStorage();
+
+        // 清除Tag Cloud缓存，因为添加了新动画
+        if (typeof tagCloudDataCache !== 'undefined') {
+          tagCloudDataCache.clear();
+          console.log('已清除Tag Cloud缓存，因为添加了新动画');
+        }
+
+        // 重新渲染卡片
+        renderTierCards();
+
+        // 关闭面板
+        searchPanel.classList.remove('active');
+        setTimeout(() => {
+          searchPanel.style.display = 'none';
+        }, 300);
+      }
     });
 
     // 删除按钮事件 - 添加确认对话框
@@ -2210,10 +2725,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // 确认删除按钮事件
         confirmDialog.querySelector('.confirm-delete').addEventListener('click', function () {
+          // 如果有图片引用，先释放
+          if (tiers[currentTier][currentIndex]?.imageHash) {
+            ImageStorage.releaseImage(tiers[currentTier][currentIndex].imageHash);
+          }
+
           // 从数组中删除
           tiers[currentTier].splice(currentIndex, 1);
 
-          // 保存到本地存储
+          // 保存图片存储和tier数据
+          ImageStorage.save();
           saveToLocalStorage();
 
           // 重新渲染卡片
@@ -2873,13 +3394,10 @@ document.addEventListener('DOMContentLoaded', function () {
           const originalIndex = parseInt(evt.from.dataset.originalIndex);
           const newIndex = evt.newIndex;
 
-          // 处理数据更新 - 内部会调用cleanupDragState()清理拖拽状态
+          // 处理数据更新
           handleSortableUpdate(originalTier, targetTier, originalIndex, newIndex, evt);
-
-          // 额外保证：在短暂延迟后再次清理状态，确保所有动画完成后状态正确
-          setTimeout(() => {
-            cleanupDragState();
-          }, 100);
+          // cleanupDragState() 会在 handleSortableUpdate 内部或其finally块中调用，
+          // 或者在 SortableJS 的其他事件回调中处理，以确保状态正确清理。
         },
 
         // 添加到新列表时
@@ -3021,256 +3539,6 @@ document.addEventListener('DOMContentLoaded', function () {
       console.error('处理拖拽更新时出错:', error);
       // 出错时重新渲染以恢复状态
       renderTierCards();
-    }
-  }
-
-  // 以下是旧的拖拽代码，保留以备参考
-  // 拖拽开始事件处理
-  function handleDragStart(e) {
-    if (e.target.classList.contains('card') && e.target.hasAttribute('style')) {
-      // 设置拖拽图像为空，以便自定义拖拽外观
-      const emptyImage = new Image();
-      e.dataTransfer.setDragImage(emptyImage, 0, 0);
-
-      // 设置拖拽效果
-      e.dataTransfer.effectAllowed = 'move';
-
-      // 保存拖拽卡片信息
-      draggedCard = e.target;
-      draggedTier = draggedCard.closest('.tier-row').id.split('-')[1];
-      draggedIndex = parseInt(draggedCard.getAttribute('data-index'));
-
-      // 添加拖拽样式类（使用setTimeout避免立即应用导致拖拽图像包含样式）
-      setTimeout(() => {
-        draggedCard.classList.add('dragging');
-
-        // 添加拖拽状态到body，可用于全局样式调整
-        document.body.classList.add('dragging-active');
-
-        // 高亮显示所有可放置的tier区域
-        document.querySelectorAll('.tier-cards').forEach(container => {
-          container.classList.add('potential-drop-target');
-        });
-      }, 0);
-    }
-  }
-
-  // 拖拽结束事件处理
-  function handleDragEnd(e) {
-    if (e.target.classList.contains('card')) {
-      // 移除拖拽样式
-      e.target.classList.remove('dragging');
-      document.body.classList.remove('dragging-active');
-
-      // 移除所有tier区域的高亮
-      document.querySelectorAll('.tier-cards').forEach(container => {
-        container.classList.remove('potential-drop-target');
-        container.classList.remove('drag-over');
-      });
-
-      // 如果有拖拽顺序调整（同一个tier内），保存数据
-      if (dropTarget && dropIndex !== null && draggedTier === dropTarget) {
-        // 获取调整后的顺序并保存
-        saveToLocalStorage();
-      }
-
-      // 添加放置完成的动画效果
-      if (draggedCard) {
-        draggedCard.classList.add('drop-animation');
-        setTimeout(() => {
-          if (draggedCard) {
-            draggedCard.classList.remove('drop-animation');
-          }
-        }, 300);
-      }
-
-      // 重置拖拽状态
-      draggedCard = null;
-      draggedTier = null;
-      draggedIndex = null;
-      dropTarget = null;
-      dropIndex = null;
-    }
-  }
-
-  // 拖拽经过事件处理
-  function handleDragOver(e) {
-    e.preventDefault(); // 允许放置
-    e.dataTransfer.dropEffect = 'move'; // 显示移动图标
-
-    // 获取鼠标位置后的元素
-    const afterElement = getDragAfterElement(this, e.clientY);
-
-    // 添加视觉指示器，显示放置位置
-    // 首先移除所有现有的指示器
-    this.querySelectorAll('.drop-indicator').forEach(el => el.remove());
-
-    // 创建新的指示器
-    const indicator = document.createElement('div');
-    indicator.className = 'drop-indicator';
-
-    if (afterElement == null) {
-      // 如果拖到最后，将卡片放在最后（空卡片之前）
-      const emptyCard = this.querySelector('.card:not([style])');
-      if (emptyCard) {
-        this.insertBefore(draggedCard, emptyCard);
-        // 在空卡片前添加指示器
-        this.insertBefore(indicator, emptyCard);
-      } else {
-        this.appendChild(draggedCard);
-        // 在容器末尾添加指示器
-        this.appendChild(indicator);
-      }
-    } else {
-      // 否则放在确定的位置前面
-      this.insertBefore(draggedCard, afterElement);
-      // 在目标元素前添加指示器
-      this.insertBefore(indicator, afterElement);
-    }
-
-    // 平滑滚动到拖拽区域（如果需要）
-    const tierRow = this.closest('.tier-row');
-    if (tierRow) {
-      const rect = tierRow.getBoundingClientRect();
-      const isAboveViewport = rect.top < 0;
-      const isBelowViewport = rect.bottom > window.innerHeight;
-
-      if (isAboveViewport) {
-        window.scrollBy({
-          top: rect.top - 100,
-          behavior: 'smooth',
-        });
-      } else if (isBelowViewport) {
-        window.scrollBy({
-          top: rect.bottom - window.innerHeight + 100,
-          behavior: 'smooth',
-        });
-      }
-    }
-  }
-
-  // 拖拽进入事件处理
-  function handleDragEnter(e) {
-    e.preventDefault();
-
-    // 移除其他容器的高亮
-    document.querySelectorAll('.tier-cards.drag-over').forEach(container => {
-      if (container !== this) {
-        container.classList.remove('drag-over');
-      }
-    });
-
-    // 添加当前容器高亮
-    this.classList.add('drag-over');
-
-    // 添加视觉反馈
-    const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
-    if (tierLabel) {
-      tierLabel.classList.add('tier-highlight');
-    }
-  }
-
-  // 拖拽离开事件处理
-  function handleDragLeave(e) {
-    // 检查是否真的离开了容器（而不是进入子元素）
-    const rect = this.getBoundingClientRect();
-    const isStillInside =
-      e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
-
-    if (!isStillInside) {
-      this.classList.remove('drag-over');
-
-      // 移除视觉反馈
-      const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
-      if (tierLabel) {
-        tierLabel.classList.remove('tier-highlight');
-      }
-
-      // 移除所有放置指示器
-      this.querySelectorAll('.drop-indicator').forEach(el => el.remove());
-    }
-  }
-
-  // 拖拽放置事件处理
-  function handleDrop(e) {
-    e.preventDefault();
-
-    // 移除所有视觉指示器
-    this.classList.remove('drag-over');
-    this.querySelectorAll('.drop-indicator').forEach(el => el.remove());
-
-    // 移除tier标签高亮
-    const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
-    if (tierLabel) {
-      tierLabel.classList.remove('tier-highlight');
-    }
-
-    if (draggedCard && draggedCard.hasAttribute('style')) {
-      // 获取目标tier
-      const targetTier = this.closest('.tier-row').id.split('-')[1];
-      dropTarget = targetTier;
-
-      // 获取放置位置
-      const cards = Array.from(this.querySelectorAll('.card[style]'));
-      dropIndex = cards.indexOf(draggedCard);
-
-      // 如果是在不同tier之间拖动
-      if (targetTier !== draggedTier) {
-        // 从原始位置删除项目
-        const movedItem = tiers[draggedTier][draggedIndex];
-        tiers[draggedTier].splice(draggedIndex, 1);
-
-        // 添加到新位置
-        if (!tiers[targetTier]) tiers[targetTier] = [];
-
-        // 如果是新位置的末尾，直接添加
-        if (dropIndex === -1 || dropIndex >= tiers[targetTier].length) {
-          tiers[targetTier].push(movedItem);
-        } else {
-          // 否则在特定位置插入
-          tiers[targetTier].splice(dropIndex, 0, movedItem);
-        }
-
-        // 保存数据
-        saveToLocalStorage();
-
-        // 添加放置成功的视觉反馈
-        const targetRow = document.getElementById(`tier-${targetTier}`);
-        if (targetRow) {
-          targetRow.classList.add('drop-success');
-          setTimeout(() => {
-            targetRow.classList.remove('drop-success');
-            // 重新渲染所有卡片
-            renderTierCards();
-          }, 300);
-        } else {
-          // 如果没有找到目标行，直接重新渲染
-          renderTierCards();
-        }
-
-        console.log(`将作品从 tier-${draggedTier} 移动到 tier-${targetTier}`);
-      } else {
-        // 同一tier内的排序调整
-        const movedItem = tiers[draggedTier][draggedIndex];
-
-        // 从原始位置删除
-        tiers[draggedTier].splice(draggedIndex, 1);
-
-        // 添加到新位置
-        tiers[draggedTier].splice(dropIndex, 0, movedItem);
-
-        // 保存数据
-        saveToLocalStorage();
-
-        // 添加卡片放置成功的视觉反馈
-        draggedCard.classList.add('sort-success');
-        setTimeout(() => {
-          draggedCard.classList.remove('sort-success');
-        }, 300);
-
-        // 注意：这里暂时不重新渲染，以保持平滑的拖拽体验
-        // 在dragend事件中会保存最终顺序
-      }
     }
   }
 
@@ -5056,7 +5324,30 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    // 背景图片上传事件
+    // 背景图片上传方式切换
+    const bgMethodBtns = document.querySelectorAll('.bg-method-btn');
+    const bgMethods = document.querySelectorAll('.bg-method');
+
+    bgMethodBtns.forEach(btn => {
+      btn.addEventListener('click', function () {
+        const method = this.getAttribute('data-method');
+
+        // 切换按钮样式
+        bgMethodBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        // 切换内容
+        bgMethods.forEach(content => {
+          if (content.getAttribute('data-method') === method) {
+            content.classList.add('active');
+          } else {
+            content.classList.remove('active');
+          }
+        });
+      });
+    });
+
+    // 背景图片本地上传事件
     if (bgFileInput) {
       bgFileInput.addEventListener('change', function (e) {
         if (this.files && this.files[0]) {
@@ -5083,6 +5374,67 @@ document.addEventListener('DOMContentLoaded', function () {
 
           reader.readAsDataURL(file);
         }
+      });
+    }
+
+    // 背景图片URL设置功能
+    const bgUrlInput = document.getElementById('bg-url-input');
+    const bgUrlSetBtn = document.querySelector('.bg-url-set-btn');
+
+    if (bgUrlSetBtn && bgUrlInput) {
+      bgUrlSetBtn.addEventListener('click', function () {
+        const url = bgUrlInput.value.trim();
+        if (!url) {
+          alert('请输入图片URL');
+          return;
+        }
+
+        // 验证URL格式
+        if (!url.startsWith('https://')) {
+          alert('为了安全，只支持 https:// 开头的图片链接');
+          return;
+        }
+
+        // 显示加载状态
+        bgUrlSetBtn.textContent = '设置中...';
+        bgUrlSetBtn.disabled = true;
+
+        // 创建图片元素进行测试
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        img.onload = function () {
+          // 设置背景图片
+          document.documentElement.style.setProperty('--custom-bg-image', `url(${url})`);
+          document.body.classList.add('custom-background');
+          customBgToggle.checked = true;
+
+          // 更新预览
+          const previewImg = document.createElement('img');
+          previewImg.src = url;
+          bgPreview.innerHTML = '';
+          bgPreview.appendChild(previewImg);
+
+          // 保存设置
+          saveBackgroundSettings();
+
+          // 恢复按钮状态
+          bgUrlSetBtn.textContent = '设置背景';
+          bgUrlSetBtn.disabled = false;
+
+          // 清空输入框
+          bgUrlInput.value = '';
+        };
+
+        img.onerror = function () {
+          alert('图片加载失败，请检查URL是否正确，或图片是否支持跨域访问');
+
+          // 恢复按钮状态
+          bgUrlSetBtn.textContent = '设置背景';
+          bgUrlSetBtn.disabled = false;
+        };
+
+        img.src = url;
       });
     }
 
@@ -5394,30 +5746,32 @@ const ROLES = {
 - 开场白 (雌小鬼式问候与初步"病情"诊断): - "哦～？杂鱼❤️，这就是你这一年吞下去的'精神食粮'清单吗？让本大小姐来给你好好'解剖'一下，看看你这贫瘠的动画品味到底有多不堪入目，或者...有没有那么一丁点让本天才刮目相看的地方呢？(¬‿¬)"
   - 对用户列表的整体风格（如厕纸含量、高分迷惑作数量）、是否有评论、观看指标的总体趋势（如整体弃番率高不高）等进行一个概括性的、极具嘲讽意味的"初步诊断"。
   - 识别并初步评论用户对特定类型的明显偏好（如百合豚、萌豚、声豚、空气系爱好者、异世界厕纸收藏家等），例如："哼，一眼望过去，你这家伙不是个标准的【XX豚/XX达人】还能是什么？口味真是单一得可怜呢～❤️"
-- 需要特别强调某部作品的评分信息时，请考虑使用这样的头格式作为每部动画的开头：
+- 需要特别强调某部作品的评分信息时，请考虑使用以下头格式作为每部动画的开头：(如果不需要特别强调则无需使用固定头格式)
     -《动画标题》[IMG]（杂鱼的评分：X分 ｜BGM评分：[BGM网站上的评分]分）
     - 例如: 《药屋少女的呢喃 第二季》[IMG] (杂鱼:8.5分｜BGM评分:7.7分)
-    - 当总结性描述、或同时提及好几部动画作品（比如同一类型、同一制作公司等）进行概括性评价时，就不需要每一部都严格套用上面的格式
+    - **严格禁止**：当总结性描述、或同时提及好几部动画作品（比如同一类型、同一制作公司等）进行概括性评价时，**绝对不要**套用上面的头格式，直接使用动画名称即可
     - 紧接着开始对此动画进行评论的第一句话中，禁止再次完整地重复刚刚才显示过的动画标题
     - 正确的衔接方式举例（供AI扮演角色时参考）：
        - 错误示范（不应如此输出）:
-         《夏日口袋》[IMG]（杂鱼的评分：8分 ｜BGM评分：7.4分）
+         《夏日口袋》[IMG] （杂鱼的评分：8分 ｜BGM评分：7.4分）
          《夏日口袋》？哼，Key社的GAL改作品嘛...
        - 正确示范（应努力达成的输出效果）:
-         《夏日口袋》[IMG]（杂鱼的评分：8分 ｜BGM评分：7.4分）
+         《夏日口袋》[IMG] （杂鱼的评分：8分 ｜BGM评分：7.4分）
          哼，Key社的这部GAL改作品嘛，一看就是想来骗眼泪的！...
          (或者)
-         《夏日口袋》[IMG]（杂鱼的评分：8分 ｜BGM评分：7.4分）
+         《夏日口袋》[IMG] （杂鱼的评分：8分 ｜BGM评分：7.4分）
          就这种东西，杂鱼❤️你也能给8分？Key社的催泪弹还是那么老套...
-     - 核心要求：在展示完评分信息后，其评论部分应该流畅过渡。可以直接开始评价作品的制作公司、剧情、类型特点，或者使用诸如“这部作品”、“这种货色”、“它”之类的指代词来指称刚刚提过的动画，而不是为了开启评论而生硬地、完整地再次复述动画标题。
-- 针对性点评：(建议：此部分应为输出内容的重头,可能会占到输出内容的7成,应当创作1200-1800字)
-  - 遍历用户提供的动画列表，对其中多部有代表性的动画（比如用户评分与大众差异大的、用户有特别评论的、或者是特别好/烂的）进行重点"锐评"
-  - 结合动画的制作公司、核心Staff如导演/脚本、声优、标签、剧情简介、BGM大众评价、用户评分及评论，进行吐槽或"表扬"（当然，表扬也是高高在上的那种）
+     - 核心要求：在展示完评分信息后，其评论部分应该流畅过渡。可以直接开始评价作品的主要角色、制作公司、剧情、类型特点，或者使用诸如“这部作品”、“这种货色”、“它”之类的指代词来指称刚刚提过的动画，而不是为了开启评论而生硬地、完整地再次复述动画标题。
+- 针对性点评：(建议：此部分应为输出内容的重头,应当创作800-1200字)
+  - 遍历<bangumi_data>标签内的动画数据，对其中多部有代表性的动画（比如用户评分与大众差异大的、用户有特别评论的、或者是特别好/烂的）、高人气动画进行重点"锐评"
+  - 结合动画的动画主要角色、人设剧情、制作公司、核心Staff如导演/脚本、声优、标签、剧情简介、BGM大众评价、用户评分及评论，进行吐槽或"表扬"（当然，表扬也是高高在上的那种）
+  - 高人气作品时重点关注主要角色的人设魅力、角色关系、剧情发展等,**可以展开更详细的分析和吐槽**
   - 灵活运用"Persona_动画婆罗门_Aspect"中的知识和"Persona_雌小鬼_Aspect"的口吻进行创作,并应自然融合玩梗、吐槽、不情愿的"赞赏"等元素
-  - 如果用户对某部"大破防级"动画评价很高，可以重点嘲讽："哦呀哦呀～这种喂X神作你居然还打这么高分？杂鱼你的胃是铁打的吗？(￣ヘ￣)"
+  - 如果用户对某部"大破防级"动画评价很高，可以重点嘲讽："哦呀哦呀～这种喂*神作你居然还打这么高分？杂鱼你的胃是铁打的吗？(￣ヘ￣)"
   - 如果用户对某部公认神作评价很低，也可以说："切～连这种神作都欣赏不来，你的动画品味也就到此为止了呢，阿宅❤️。
   - 思路启发：(包括但不限于)
      - 从制作公司/Staff入手，结合其业界口碑或梗进行嘲讽或"点评"
+     - 从主要角色的魅力、人设、剧情等进行点评或吐槽
      - 对比BGM评分和用户评分，进行"精准打击"或"迷惑行为大赏"式点评
      - 针对用户评论进行"断章取义"或"恶意引申"式吐槽
      - 结合动画标签和剧情简介，进行"一针见血"的吐槽或玩梗
@@ -5961,8 +6315,10 @@ function extractAnimeInfo(animeData) {
     const persons = animeData.persons || [];
     let studio = '未知';
     let director = '未知';
+    let seriesComposition = '未知';
+    let script = '未知';
 
-    // 从infobox中提取制作公司和导演信息
+    // 从infobox中提取制作公司、导演、系列构成和脚本信息
     infobox.forEach(item => {
       if (item.key === '动画制作' || item.key === '制作') {
         if (Array.isArray(item.value)) {
@@ -5982,10 +6338,30 @@ function extractAnimeInfo(animeData) {
           director = String(item.value);
         }
       }
+      if (item.key === '系列构成' || item.key === 'シリーズ構成') {
+        if (Array.isArray(item.value)) {
+          seriesComposition = item.value
+            .map(v => (typeof v === 'object' ? v.v || v.name || String(v) : String(v)))
+            .join(', ');
+        } else if (typeof item.value === 'object') {
+          seriesComposition = item.value.v || item.value.name || String(item.value);
+        } else {
+          seriesComposition = String(item.value);
+        }
+      }
+      if (item.key === '脚本' || item.key === '脚本家' || item.key === 'シナリオ') {
+        if (Array.isArray(item.value)) {
+          script = item.value.map(v => (typeof v === 'object' ? v.v || v.name || String(v) : String(v))).join(', ');
+        } else if (typeof item.value === 'object') {
+          script = item.value.v || item.value.name || String(item.value);
+        } else {
+          script = String(item.value);
+        }
+      }
     });
 
     // 如果infobox中没有找到，从persons中提取
-    if (studio === '未知' || director === '未知') {
+    if (studio === '未知' || director === '未知' || seriesComposition === '未知' || script === '未知') {
       persons.forEach(person => {
         const relation = person.relation || '';
         const name = person.name || '';
@@ -6006,6 +6382,27 @@ function extractAnimeInfo(animeData) {
           (relation.includes('导演') || relation.includes('監督') || relation.includes('Director'))
         ) {
           director = name;
+        }
+
+        // 提取系列构成信息
+        if (
+          seriesComposition === '未知' &&
+          (relation.includes('系列构成') ||
+            relation.includes('シリーズ構成') ||
+            relation.includes('Series Composition'))
+        ) {
+          seriesComposition = name;
+        }
+
+        // 提取脚本信息
+        if (
+          script === '未知' &&
+          (relation.includes('脚本') ||
+            relation.includes('シナリオ') ||
+            relation.includes('Script') ||
+            relation.includes('Screenplay'))
+        ) {
+          script = name;
         }
       });
     }
@@ -6057,6 +6454,8 @@ function extractAnimeInfo(animeData) {
       date: animeData.date || '',
       studio: studio,
       director: director,
+      seriesComposition: seriesComposition,
+      script: script,
       mainCharacters: mainCharacters,
       infobox: infobox,
       // 添加更多有用的数据
@@ -6089,6 +6488,8 @@ function extractAnimeInfo(animeData) {
       date: '',
       studio: '未知',
       director: '未知',
+      seriesComposition: '未知',
+      script: '未知',
       mainCharacters: '未知',
       infobox: [],
     };
@@ -6121,20 +6522,24 @@ async function collectAnimeData() {
   let processedCount = 0;
   let totalCount = 0;
 
-  // 收集当前页面上所有动画ID
+  // 收集当前页面上所有动画ID和卡片总数
   const currentAnimeIds = new Set();
   tierRows.forEach(row => {
     if (row.style.display !== 'none') {
       const cardsContainer = row.querySelector('.tier-cards');
       if (cardsContainer) {
-        const cards = cardsContainer.querySelectorAll('.card[data-id][data-title]');
-        cards.forEach(card => {
+        // 计算所有卡片（包括自定义内容）
+        const allCards = cardsContainer.querySelectorAll('.card');
+        totalCount += allCards.length;
+
+        // 收集有data-id的动画ID用于缓存管理
+        const cardsWithId = cardsContainer.querySelectorAll('.card[data-id][data-title]');
+        cardsWithId.forEach(card => {
           const animeId = card.getAttribute('data-id');
           if (animeId && animeId !== 'undefined') {
             currentAnimeIds.add(animeId);
           }
         });
-        totalCount += cards.length;
       }
     }
   });
@@ -6219,10 +6624,13 @@ async function collectAnimeData() {
       const cardsContainer = row.querySelector('.tier-cards');
 
       if (cardsContainer) {
-        const cards = cardsContainer.querySelectorAll('.card[data-id][data-title]');
+        // 选择所有卡片，包括有data-id的和自定义内容（没有data-id的）
+        const cards = cardsContainer.querySelectorAll('.card');
         for (const card of cards) {
           const title = card.getAttribute('data-title');
           const animeId = card.getAttribute('data-id');
+
+          // 处理有data-id的动画（从API获取详细信息）
           if (title && animeId && animeId !== 'undefined') {
             try {
               // 优先从缓存获取详细信息，避免重复API调用
@@ -6285,6 +6693,8 @@ async function collectAnimeData() {
                 rank: '未知',
                 studio: '未知',
                 director: '未知',
+                seriesComposition: '未知',
+                script: '未知',
                 tags: [],
                 mainCharacters: '未知',
                 summary: '暂无简介',
@@ -6293,6 +6703,42 @@ async function collectAnimeData() {
               processedCount++;
               updateProgress();
             }
+          }
+          // 处理自定义内容（没有data-id的卡片）
+          else if (title) {
+            console.log(`发现自定义内容: ${title}`);
+
+            // 从tier list数据中获取图片URL
+            const cardImg = card.querySelector('img');
+            const imgUrl = cardImg ? cardImg.src : null;
+
+            // 为自定义内容生成一个唯一ID用于评论系统
+            const customId = `custom_${title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}`;
+            const userComment = getUserComment(customId);
+
+            animeListData.push({
+              title: title,
+              tier: tierId,
+              id: customId,
+              img: imgUrl,
+              userComment: userComment,
+              // 自定义内容的默认信息
+              rating: '自定义内容',
+              rank: '无排名',
+              studio: '自定义添加',
+              director: '未知',
+              seriesComposition: '未知',
+              script: '未知',
+              tags: ['自定义内容'],
+              mainCharacters: '未知',
+              summary: '这是用户自定义添加的内容',
+              totalEpisodes: '未知',
+              ratingDetails: null,
+              collection: null,
+            });
+
+            processedCount++;
+            updateProgress();
           }
         }
       }
@@ -6342,7 +6788,7 @@ function buildAnalysisPrompt(animeListData) {
 - 高争议度(>20%)表示作品爱恨分明，有明显的支持者和反对者
 - 低争议度(<10%)表示大众评价相对一致
 
-## Bangumi(BGM)评分标准
+## Bangumi(BGM)网站大众评分标准
 1分：不忍直视
 2分：很差
 3分：差
@@ -6358,6 +6804,7 @@ function buildAnalysisPrompt(animeListData) {
 ${selectedRole.openingLine}
 
 已评价的动画列表如下：
+<bangumi_data>
 `;
 
   animeListData.forEach(anime => {
@@ -6400,8 +6847,9 @@ ${selectedRole.openingLine}
     typeof anime.rating === 'object' ? anime.rating?.score || '未知' : anime.rating || '未知'
   }分 (排名: ${typeof anime.rank === 'object' ? anime.rank?.rank || '未知' : anime.rank || '未知'})
   - 制作公司: ${anime.studio || '未知'}
-  - 导演: ${anime.director || '未知'}
-  - 总集数: ${anime.totalEpisodes || '未知'}集
+  - 监督: ${anime.director || '未知'}
+  - 系列构成: ${anime.seriesComposition || '未知'}
+  - 脚本: ${anime.script || '未知'}
   - 标签: ${Array.isArray(anime.tags) ? anime.tags.join(', ') : anime.tags || '未知'}
   - 主要角色: ${anime.mainCharacters || '未知'}
   - 剧情简介: ${anime.summary || '未知'}
@@ -6411,19 +6859,27 @@ ${analysisMetrics ? `  - ${analysisMetrics}` : ''}
 `;
   });
 
-  prompt += `
+  prompt += `</bangumi_data>
+
 <IMG插入规则>
-在分析过程中，当你提到以下内容时，请在名称后添加[IMG]标记以显示图片：
+在分析过程中，当你首次提到以下五类的【完整官方名称】(完整官方名称请参考<bangumi_data>标签内正确的名称)时，请在名称后添加[IMG]标记：
 - 动画名称：如"《进击的巨人》[IMG]"
-- 角色名称：如"夏目悠宇[IMG]"、"艾伦·耶格尔[IMG]"
+- 角色名称：如"綾波レイ[IMG]"、"牧瀬紅莉栖[IMG]"
+  - 角色名称如果要插入[IMG]标签,则必须使用日文原名而不是简体中文名
+  - 角色名称的[IMG]标记只能用于日文原名
+  - **重要提示**：在上述<bangumi_data>中"主要角色"字段列出的角色名称都是正确的日文原名，可以直接使用这些名称+[IMG]标记
+  - 例如：如果数据中显示"猫猫(悠木碧)"，则应使用"猫猫[IMG]"
 - 声优名称：如"悠木碧[IMG]"、"戸谷菊之介[IMG]"
-- 制作人员：如"鶴巻和哉[IMG]"、"庵野秀明[IMG]"
+- 制作人员(例如监督,脚本,系列构成)：如"鶴巻和哉[IMG]"、"庵野秀明[IMG]"
 - 动画公司：如"J.C.STAFF[IMG]"
 
 注意事项：
 - 只在第一次提到时添加[IMG]标记，重复提到时不需要(确保名称准确，与用户数据中的名称保持一致)
-- 优先为主要角色、知名声优、知名导演、重要制作公司插入[IMG]
+- 若需要在 [IMG] 标记后使用左圆括号 ( 包裹补充信息，则 [IMG] 标记与左圆括号 ( 之间必须有一个空格
+- 对于任何不属于<IMG插入规则>中明确定义的五种实体类别、或者不满足其“完整官方名称”和“首次提及”条件的词语、标签、短语或任何其他文本片段（例如常见的吐槽标签 神作、异世界、典，或任何形容词、评论性描述等），**【【绝对禁止】】** 在其后添加 [IMG] 标记包裹。
+- 优先为主要角色、知名声优、知名导演、重要制作公司等staff插入[IMG],如果判断为不知名staff,可考虑不插入
 - 只在提到完整名字时添加[IMG]标记,其他情况(简称,别名等)下不要添加
+ - 任何形式的简称、别名、昵称、非官方翻译或粉丝常用称呼，均不得添加[IMG]标记
   - 例如:使用"悠木碧"时添加[IMG]标记,使用"UMB,凹酱"时不要添加
   - 例如:使用"J.C.STAFF"添加[IMG]标记,使用"JC社,节操社"时不要添加
   - 例如:使用"田中基树"添加[IMG]标记,使用"天冲"时不要添加
@@ -7131,11 +7587,17 @@ function initializeMainTasteReport() {
     generateBtn.addEventListener('click', handleMainGenerateTasteReport);
   }
 
-  // 隐藏查看完整Prompt按钮功能
-  // const viewPromptBtn = document.getElementById('main-view-prompt-btn');
-  // if (viewPromptBtn) {
-  //   viewPromptBtn.addEventListener('click', showPromptDialog);
-  // }
+  // 查看完整Prompt按钮
+  const viewPromptBtn = document.getElementById('main-view-prompt-btn');
+  if (viewPromptBtn) {
+    viewPromptBtn.addEventListener('click', showPromptDialog);
+  }
+
+  // 查看原始输出按钮
+  const viewRawOutputBtn = document.getElementById('main-view-raw-output-btn');
+  if (viewRawOutputBtn) {
+    viewRawOutputBtn.addEventListener('click', showRawOutputDialog);
+  }
 
   // 清理缓存按钮
   const clearCacheBtn = document.getElementById('clear-cache-btn');
@@ -7143,8 +7605,11 @@ function initializeMainTasteReport() {
     clearCacheBtn.addEventListener('click', handleClearCache);
   }
 
-  // 隐藏初始化查看Prompt对话框功能
-  // initializePromptDialog();
+  // 初始化查看Prompt对话框
+  initializePromptDialog();
+
+  // 初始化查看原始输出对话框
+  initializeRawOutputDialog();
 }
 
 // 处理主界面生成总结报告
@@ -7202,13 +7667,14 @@ async function handleMainGenerateTasteReport() {
     // 构建Prompt
     const prompt = buildAnalysisPrompt(animeListData);
 
-    // 隐藏保存prompt功能
-    // window.lastGeneratedPrompt = prompt;
+    // 保存prompt以供查看
+    window.lastGeneratedPrompt = prompt;
 
-    // 隐藏查看Prompt按钮功能
-    // if (viewPromptBtn) {
-    //   viewPromptBtn.style.display = 'inline-flex';
-    // }
+    // 显示查看Prompt按钮
+    const viewPromptBtn = document.getElementById('main-view-prompt-btn');
+    if (viewPromptBtn) {
+      viewPromptBtn.style.display = 'inline-flex';
+    }
 
     // 创建结果容器并支持流式传输
     // 保留banner，只更新其他内容
@@ -7254,6 +7720,15 @@ async function handleMainGenerateTasteReport() {
         // 自动滚动到底部
         resultDiv.scrollTop = resultDiv.scrollHeight;
       });
+
+      // 保存原始输出内容以供查看
+      window.lastGeneratedRawOutput = finalReport;
+
+      // 显示查看原始输出按钮
+      const viewRawOutputBtn = document.getElementById('main-view-raw-output-btn');
+      if (viewRawOutputBtn) {
+        viewRawOutputBtn.style.display = 'inline-flex';
+      }
 
       // 保存报告到缓存
       saveTasteReportToCache(finalReport, prompt);
@@ -7329,8 +7804,7 @@ async function handleMainGenerateTasteReport() {
   }
 }
 
-// 隐藏显示Prompt对话框功能
-/*
+// 显示Prompt对话框
 function showPromptDialog() {
   if (!window.lastGeneratedPrompt) {
     showNotification('没有可查看的Prompt', 'error');
@@ -7345,10 +7819,24 @@ function showPromptDialog() {
     dialog.classList.add('active');
   }
 }
-*/
 
-// 隐藏初始化Prompt对话框功能
-/*
+// 显示原始输出对话框
+function showRawOutputDialog() {
+  if (!window.lastGeneratedRawOutput) {
+    showNotification('没有可查看的原始输出内容', 'error');
+    return;
+  }
+
+  const dialog = document.getElementById('view-raw-output-dialog');
+  const rawOutputText = document.getElementById('raw-output-text');
+
+  if (dialog && rawOutputText) {
+    rawOutputText.textContent = window.lastGeneratedRawOutput;
+    dialog.classList.add('active');
+  }
+}
+
+// 初始化Prompt对话框
 function initializePromptDialog() {
   const dialog = document.getElementById('view-prompt-dialog');
   if (!dialog) return;
@@ -7385,7 +7873,44 @@ function initializePromptDialog() {
     }
   });
 }
-*/
+
+// 初始化原始输出对话框
+function initializeRawOutputDialog() {
+  const dialog = document.getElementById('view-raw-output-dialog');
+  if (!dialog) return;
+
+  // 关闭按钮
+  const closeBtn = dialog.querySelector('.export-dialog-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      dialog.classList.remove('active');
+    });
+  }
+
+  // 复制按钮
+  const copyBtn = document.getElementById('copy-raw-output-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      const rawOutputText = document.getElementById('raw-output-text');
+      if (rawOutputText && rawOutputText.textContent) {
+        try {
+          await navigator.clipboard.writeText(rawOutputText.textContent);
+          showNotification('原始输出已复制到剪贴板', 'success');
+        } catch (error) {
+          console.error('复制失败:', error);
+          showNotification('复制失败', 'error');
+        }
+      }
+    });
+  }
+
+  // 点击背景关闭
+  dialog.addEventListener('click', e => {
+    if (e.target === dialog) {
+      dialog.classList.remove('active');
+    }
+  });
+}
 
 // ==================== 图片替换功能 ====================
 
@@ -7816,14 +8341,15 @@ window.testWorldActorIssue = testWorldActorIssue;
 // 保存品味报告到缓存
 function saveTasteReportToCache(report, prompt) {
   try {
-    // 计算当前动画总数
+    // 计算当前动画总数（包括自定义内容）
     let animeCount = 0;
     const tierRows = document.querySelectorAll('.tier-list-container .tier-row');
     tierRows.forEach(row => {
       if (row.style.display !== 'none') {
         const cardsContainer = row.querySelector('.tier-cards');
         if (cardsContainer) {
-          const cards = cardsContainer.querySelectorAll('.card[data-id][data-title]');
+          // 计算所有卡片，包括自定义内容
+          const cards = cardsContainer.querySelectorAll('.card');
           animeCount += cards.length;
         }
       }
@@ -7832,6 +8358,7 @@ function saveTasteReportToCache(report, prompt) {
     const cacheData = {
       report: report,
       prompt: prompt,
+      rawOutput: report, // 保存原始输出内容
       timestamp: Date.now(),
       animeCount: animeCount,
     };
@@ -7894,10 +8421,13 @@ function displayCachedTasteReport() {
           if (row.style.display !== 'none') {
             const cardsContainer = row.querySelector('.tier-cards');
             if (cardsContainer) {
-              const cards = cardsContainer.querySelectorAll('.card[data-id][data-title]');
+              // 处理所有卡片，包括自定义内容
+              const cards = cardsContainer.querySelectorAll('.card');
               cards.forEach(card => {
                 const title = card.getAttribute('data-title');
                 const animeId = card.getAttribute('data-id');
+
+                // 处理有data-id的动画
                 if (title && animeId && animeId !== 'undefined') {
                   // 只从缓存获取数据，不调用API
                   const cachedData = getCacheData(animeId);
@@ -7910,6 +8440,17 @@ function displayCachedTasteReport() {
                       img: imgUrl,
                     });
                   }
+                }
+                // 处理自定义内容
+                else if (title) {
+                  const cardImg = card.querySelector('img');
+                  const imgUrl = cardImg ? cardImg.src : null;
+                  const customId = `custom_${title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}`;
+                  animeListData.push({
+                    title: title,
+                    id: customId,
+                    img: imgUrl,
+                  });
                 }
               });
             }
@@ -7963,12 +8504,19 @@ function displayCachedTasteReport() {
     // 添加结果到容器内
     contentDiv.appendChild(resultDiv);
 
-    // 恢复prompt
+    // 恢复prompt和原始输出
     window.lastGeneratedPrompt = cachedReport.prompt;
+    window.lastGeneratedRawOutput = cachedReport.rawOutput || cachedReport.report; // 兼容旧缓存
 
     // 显示查看Prompt按钮
     if (viewPromptBtn) {
       viewPromptBtn.style.display = 'inline-flex';
+    }
+
+    // 显示查看原始输出按钮
+    const viewRawOutputBtn = document.getElementById('main-view-raw-output-btn');
+    if (viewRawOutputBtn) {
+      viewRawOutputBtn.style.display = 'inline-flex';
     }
 
     return true;
