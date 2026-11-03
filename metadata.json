@@ -1,0 +1,8 @@
+{
+  "name": "BGM AniTier - 动画 Tier List 排行工具",
+  "description": "基于Web的动画Tier List制作工具，集成Bangumi API，支持自定义背景、评论系统、数据导出等功能",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

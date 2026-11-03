@@ -1,0 +1,12 @@
+.playwright-cli/
+node_modules/
+dist/
+dist-static/
+output/
+.wrangler/
+.aistudio/
+.data/
+.env
+.env.*
+!.env.example
+*.log

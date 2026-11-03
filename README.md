@@ -1,86 +1,64 @@
-# BGM AniTier - 动画 Tier List 排行工具
+# BGM AniTier v2.0 - 现代动画 Tier List 排行工具
 
-一个不简洁的网页工具，用于创建和管理您的个人动画 Tier List 排行榜。
+基于 **React 19 + TypeScript + Vite + Tailwind CSS v4 + Express** 全面重构的个人动画分级与品味分析工具。
 
-## 如何使用
+## 本地运行与数据备份
 
-1.  点击页面右上角绿色的 `Code` 按钮
-2.  选择 Download ZIP
-3.  下载完成后解压缩文件夹
-4.  在您的网页浏览器中打开 `my-tier-list.html` 文件
-5.  AI功能：如需使用AI分析功能，请准备 Google Gemini API Key
+运行 `npm install`、`npm run dev`，然后打开 `http://localhost:3000`。首次启动会自动迁移旧浏览器存档，原始 localStorage 数据保留。
 
-### 方法二：下载发行版（推荐）
-1. 访问 [Releases 页面](https://github.com/yourusername/BGM-AniTier/releases)
-2. 下载最新版本的压缩包
-3. 解压缩到任意文件夹
-4. 双击打开 `my-tier-list.html` 文件
-5. 开始创建您的动画排行榜！
+在 **设置 → 导出全量备份** 保存 JSON。新版备份包含小剧场台本、角色差分、配图、世界书、开场收尾和语速。导入前自动保留一个恢复点，可使用 **恢复到上次导入之前**。文件含 Token 和 API Key，请勿公开分享。
 
-### 在线使用
+本地使用 IndexedDB 和 `.data/user-state.json` 保存；Cloudflare 线上版仅保存在浏览器。图片下载失败会保留外链并提示，外链仍需联网。完整检查结果与恢复说明见 [收尾检查](docs/final-audit-2026-11-02.md)。
 
-访问：[项目 GitHub Pages](https://dsgrou.dpdns.org/my-tier-list)
+提交前运行 `npm run lint`、`npx tsx --test src/lib/*.test.ts`、`npm run build`。
 
-## 主要功能
+## Cloudflare 发布
 
--   从 Bangumi 搜索动画或按季度浏览。
--   通过拖拽对动画进行分级。
--   自定义 Tier 等级和外观。
--   添加个人评论。
--   将您的 Tier List 导出为图片或 JSON 数据。
--   **AI 总结报告（LLM 功能）**：利用 Google Gemini AI 分析您的动画偏好并生成个性化的“品味总结报告”。您可以选择不同的 AI 角色（如毒舌雌小鬼、可爱猫娘等）来获得不同风格的趣味点评。此功能需要您自行提供有效的 Gemini API Key。
+线上项目为 `bgm-anitier2026`，地址为 `https://bgm-anitier2026.pages.dev/`。首次打开没有预置作品、短评、报告或台词；已有浏览器存档继续保留。
 
-## 注意
--   页面全是bug,不要依赖导出数据来保存,可能会丢失,建议截图保存
--   如果想评论的话建议不要评论自定义内容,数据会溢出导致保存失败
--   导出数据的时候,自定义图片可能也会丢失哦
--   **我只测试过windows+chrome能正常运行,其他的环境没测哇**
+运行 `npm run build:cf` 生成 `dist-static/`。将这个目录复制到仓库外的独立发布文件夹，在该文件夹运行：
 
-## 效果截图
+```powershell
+wrangler pages deploy . --project-name bgm-anitier2026 --branch main
+```
 
-下面展示了工具的一些主要界面和功能：
+仅上传构建文件；不要从仓库根目录执行部署，以免 Wrangler 自动带上旧的 `functions/`。不要上传 `.data/`、`.env`、全量备份或 AI Studio 的个人媒体。CF 无需设置 BGM Token 或 AI Key，每个人在自己的页面里填写。AI 服务须支持浏览器跨域访问（CORS）。
 
-<img src="截图/tierlist.png" alt="Tier List 主界面" width="700">
-Tier List 主界面，可以拖拽动画进行分级
+应用的存档、榜单和 AI 请求仍在浏览器里处理。唯一的云端接口是随构建发布的 `cloudflare/pages/_worker.js`：`GET /api/public-comments/subjects/:id` 和 `/characters/:id` 只读取 Bangumi 公开吐槽，解决网页接口的跨域限制。它不转发 Token、Cookie 或用户输入，只短暂缓存公开评论，不保存用户存档。`_routes.json` 让其他页面仍由静态文件直接提供。
 
-<br>
+在报告或小剧场的 **Prompt 预览 → 刷新 Prompt** 重新拉取资料和吐槽。预览显示实际取得的条数，失败时保留已有作品。配角默认只包含姓名和 CV；已检查到评论超过 5 条的配角才补充介绍与评论。为限制请求量，每部作品最多检查 20 个角色，详细采样 10 个。季度新番会在向下滚动时继续翻页，网络失败时可重试。
 
-<img src="截图/LLM动画总结.png" alt="AI 动画总结报告" width="700">
-AI总结报告。
+本地与线上网址的浏览器存档独立；迁移时在本地导出全量备份，再到线上导入。备份含个人凭据，只供本人保存。线上没有服务器存档或跨设备同步，清理浏览器数据前先导出。
 
-<br>
+## ✨ 核心功能
 
-<img src="截图/tag.png" alt="标签筛选功能" width="700">
+- **多级评分系统**：支持 1–10 分标准档位，并可一键开启或单独定制 `0.5` 半分细分档位（`9.5`、`8.5` ... `1.5`）。
+- **Bangumi API 集成**：支持按关键词实时搜索动画、按年份与季度（1月/4月/7月/10月）浏览新番，以及手动添加自定义番剧条目。
+- **拖拽跨档排序**：直观的跨档位与同档位拖拽排序，自动去重并实时保存在本地存储中。
+- **Tag 偏好分析**：自动汇总上榜动画的高频标签与平均给分，点击任意标签即可在看板中高亮对应动画。
+- **多样式个人短评**：支持 4 种不同的短评卡片排版（右侧分栏封面、顶部大图卡片、沉浸背景覆盖、紧凑圆角小卡）。
+- **AI 品味总结报告**：支持毒舌雌小鬼、元气猫娘、高性能亚托莉、派大星和大肥鱼（鲸鱼娘）等角色，使用自己的 API 服务生成深度锐评。
+- **主题与数据管理**：默认使用深蓝雾光背景，可切换其他渐变或自定义图片，支持导出高清 PNG 与 JSON 全量备份。
 
+## 🗂️ 项目目录结构
 
-<br>
-
-<img src="截图/主题.png" alt="自定义主题" width="700">
-
-
-## 技术栈
-
--   HTML, CSS, JavaScript
-
-## 主要依赖库
-
--   **SortableJS**: 用于实现拖拽排序功能。
--   **html2canvas**: 用于将 Tier List 导出为图片。
--   **Masonry**: 用于评论区的瀑布流布局。
--   **Font Awesome**: 提供图标。
--   **Marked**: 用于渲染 Markdown 格式的评论和说明。
--   **Highlight.js**: 用于代码高亮。
--   **@google/generative-ai**: 用于实现 AI 总结报告功能。
-
-## 🙏 致谢
-
--   **动画数据来源**：[番组计划 (Bangumi)](https://bgm.tv/) - 感谢提供丰富的动画数据库
--   **搜索功能参考**：[anime-grid](https://github.com/itorr/anime-grid) - 动画生涯个人喜好表生成器
--   **图标资源**：[Font Awesome](https://fontawesome.com/) - 精美的图标库
-
-## ⚖️ 使用声明
-
--   ✅ **个人使用**：完全免费，欢迎个人学习和使用
--   ❌ **商业用途**：禁止用于商业、盈利用途
--   📝 **开源协议**：本项目采用 MIT 协议开源
--   🔗 **数据来源**：动画信息来自番组计划，请遵守其使用条款
+```text
+├── server.ts                        # Express + Vite 全栈服务端（Bangumi 代理与 Gemini AI 接口）
+├── src/
+│   ├── types.ts                     # 核心 TypeScript 数据模型定义
+│   ├── App.tsx                      # 顶层状态管理与页面容器
+│   ├── lib/
+│   │   ├── tierLogic.ts             # 纯逻辑函数（分级增删改、统计、标签聚合、AI Prompt 构建）
+│   │   ├── tierLogic.test.ts        # 核心逻辑单元测试
+│   │   ├── bangumiApi.ts            # Bangumi v0 API 客户端与内置精选番剧库
+│   │   └── themes.ts                # 渐变主题配置
+│   └── components/
+│       ├── HeaderBar.tsx            # 顶部导航与工作区工具栏
+│       ├── TierRow.tsx              # 单个分数档位行与动画卡片
+│       ├── SearchModal.tsx          # 搜索 / 季度新番 / 自定义条目弹窗
+│       ├── AnimeDetailModal.tsx     # 动画详情与评分调整弹窗
+│       ├── TagAnalysisSection.tsx   # Tag 统计与筛选交互面板
+│       ├── CommentsSection.tsx      # 4种样式的个人短评区与编辑弹窗
+│       ├── TasteReportSection.tsx   # AI 角色品味总结报告（流式传输）
+│       └── SettingsDrawer.tsx       # 设置、半分档开关、主题与 JSON 备份抽屉
+```

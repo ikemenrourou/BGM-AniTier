@@ -1,0 +1,473 @@
+@import "tailwindcss";
+
+.report-narrative {
+  color: #c7c8ce;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 2.15;
+  overflow-wrap: anywhere;
+}
+.report-narrative h2,
+.report-narrative h3 {
+  color: #e6e6eb;
+  font-weight: 600;
+  line-height: 1.8;
+  margin: 28px 0 18px;
+  padding-top: 22px;
+  border-top: 1px solid rgb(255 255 255 / 6%);
+}
+.report-narrative h2 { font-size: 19px; }
+.report-narrative h3 { font-size: 16px; }
+.report-narrative p { margin-bottom: 18px; }
+.report-narrative p:last-child { margin-bottom: 0; }
+.report-narrative strong { color: #e0e0e5; font-weight: 600; }
+.report-narrative blockquote {
+  margin: 16px 0;
+  padding-left: 16px;
+  border-left: 2px solid #57565b;
+  color: #aaaab3;
+}
+.report-narrative hr { margin: 28px 0; border-color: rgb(255 255 255 / 7%); }
+.report-narrative ul { list-style: disc; padding-left: 20px; }
+.report-narrative ol { list-style: decimal; padding-left: 20px; }
+.report-narrative li { margin-bottom: 6px; }
+.report-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 4px;
+  vertical-align: middle;
+  max-width: 100%;
+}
+.report-badge-name {
+  color: #d9d9e0;
+  font-size: 0.9em;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.report-work-cover,
+.report-character-cover {
+  display: inline-block;
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #232329;
+}
+.report-work-cover { width: 28px; height: 38px; border-radius: 5px; margin: -7px 0; }
+.report-character-cover { width: 28px; height: 28px; border-radius: 9px; margin: -5px 0; }
+.report-score {
+  display: inline-block;
+  margin-left: 12px;
+  color: #92949f;
+  font-size: 12px;
+  font-weight: 400;
+  vertical-align: middle;
+}
+.report-credit {
+  display: inline;
+  padding: 2px 5px;
+  margin: 0 2px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 4%);
+  color: #afb9c2;
+  font-size: 0.92em;
+  font-weight: 400;
+}
+.report-quote { color: #c7baa6; font-weight: 500; }
+.report-heart { filter: saturate(0.45); }
+.report-sticker {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  margin: -6px 5px;
+  vertical-align: middle;
+}
+
+.report-character-avatar {
+  width: 175%;
+  max-width: none;
+  height: auto;
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  transform: translateX(-50%);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    color: #ffffff;
+    background-color: #07080c;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Borderless Diffused Glass Row Container (no white hairline border!) */
+.tier-row-glass {
+  border-radius: 24px;
+  border: none;
+  isolation: isolate;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.tier-row-glass-active {
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.55), 0 0 0 1.5px rgba(255, 255, 255, 0.22);
+}
+
+/* Seam-free Elevated Glass Surface for Panels & Cards */
+.apple-glass-panel {
+  background: linear-gradient(165deg, rgba(22, 23, 29, 0.84) 0%, rgba(12, 13, 18, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.52);
+  isolation: isolate;
+}
+
+/* Multi-Stop Sinusoidal CSS Mask Feathering for Irregular Comment Covers (zero hard seams!) */
+.mask-fade-left {
+  -webkit-mask-image: linear-gradient(
+    to left,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 22%,
+    rgba(0, 0, 0, 0.66) 46%,
+    rgba(0, 0, 0, 0.32) 68%,
+    rgba(0, 0, 0, 0.08) 86%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to left,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 22%,
+    rgba(0, 0, 0, 0.66) 46%,
+    rgba(0, 0, 0, 0.32) 68%,
+    rgba(0, 0, 0, 0.08) 86%,
+    transparent 100%
+  );
+}
+
+.mask-fade-right {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 22%,
+    rgba(0, 0, 0, 0.66) 46%,
+    rgba(0, 0, 0, 0.32) 68%,
+    rgba(0, 0, 0, 0.08) 86%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 22%,
+    rgba(0, 0, 0, 0.66) 46%,
+    rgba(0, 0, 0, 0.32) 68%,
+    rgba(0, 0, 0, 0.08) 86%,
+    transparent 100%
+  );
+}
+
+.mask-fade-bottom {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 26%,
+    rgba(0, 0, 0, 0.62) 54%,
+    rgba(0, 0, 0, 0.24) 78%,
+    rgba(0, 0, 0, 0.05) 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 26%,
+    rgba(0, 0, 0, 0.62) 54%,
+    rgba(0, 0, 0, 0.24) 78%,
+    rgba(0, 0, 0, 0.05) 92%,
+    transparent 100%
+  );
+}
+
+.mask-fade-top {
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 26%,
+    rgba(0, 0, 0, 0.62) 54%,
+    rgba(0, 0, 0, 0.24) 78%,
+    rgba(0, 0, 0, 0.05) 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 26%,
+    rgba(0, 0, 0, 0.62) 54%,
+    rgba(0, 0, 0, 0.24) 78%,
+    rgba(0, 0, 0, 0.05) 92%,
+    transparent 100%
+  );
+}
+
+/* Ambient Floating Particles Effect */
+@keyframes floatParticle {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(-28px) translateX(12px);
+    opacity: 0.55;
+  }
+}
+
+.ambient-particle {
+  position: fixed;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: floatParticle 7s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   16:9 RECORDING STUDIO CHOREOGRAPHY & HAND-DRAWN BOILING LINE BUBBLE
+   ========================================================================== */
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hand-drawn journal speech bubble pop-in + subtle boiling frame jitter */
+@keyframes handDrawnBubblePop {
+  0% {
+    opacity: 0;
+    transform: translate3d(-10px, 8px, 0) scale(0.92) rotate(-1.2deg);
+  }
+  65% {
+    opacity: 1;
+    transform: translate3d(2px, -2px, 0) scale(1.02) rotate(0.4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes handDrawnBoilJitter {
+  0%, 100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  33% {
+    transform: translate(0.4px, -0.5px) rotate(-0.18deg);
+  }
+  66% {
+    transform: translate(-0.4px, 0.4px) rotate(0.18deg);
+  }
+}
+
+.hand-drawn-bubble-enter {
+  animation:
+    handDrawnBubblePop 0.32s cubic-bezier(0.22, 1.35, 0.36, 1) forwards,
+    handDrawnBoilJitter 0.42s steps(2, end) 0.32s infinite;
+}
+
+/* Dialogue sits above and to the right of its character, like a comic panel. */
+.studio-character-bubble {
+  order: 0;
+  margin-left: calc(clamp(40px, 4vw, 72px) + 10px);
+  margin-bottom: -24px;
+  top: -8px;
+}
+
+.studio-character-slot {
+  position: relative;
+  z-index: 2;
+}
+
+.studio-dialogue-bubble {
+  max-width: 100%;
+  transition: width 80ms ease-out, opacity 300ms ease;
+}
+
+.studio-bubble-measure {
+  position: absolute;
+  width: max-content;
+  max-width: none;
+  white-space: pre;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+}
+
+.studio-bubble-outline {
+  overflow: visible;
+  filter: drop-shadow(0 8px 12px rgb(0 0 0 / 20%));
+}
+
+.studio-typing-caret {
+  position: relative;
+  display: inline-block;
+  width: 0;
+  height: 1em;
+  vertical-align: middle;
+}
+
+.studio-typing-caret::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 3px;
+  height: 0.9em;
+  background: #18181b;
+}
+
+.studio-character-portrait {
+  order: 1;
+  width: clamp(116px, 11vw, 170px);
+}
+
+.studio-character-art {
+  width: 100%;
+  height: clamp(110px, 20vh, 184px);
+}
+
+.studio-bubble-copy {
+  min-width: 0;
+  /* Reserve room for the zero-width caret without changing the line's wrap point. */
+  padding-right: 8px;
+  max-height: clamp(60px, calc(30vh - 130px), 210px);
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #737373 transparent;
+}
+
+/* Keep the pool outline inside the clipped poster, above the blurred cover. */
+.studio-pool-poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.studio-pool-poster--next::after {
+  border-color: rgb(232 202 138 / 70%);
+}
+
+.studio-scene-image-position {
+  position: absolute;
+  z-index: 1;
+  left: clamp(112px, 8.5vw, 170px);
+  right: -5px;
+  top: 46%;
+  transform: translateY(-50%) rotate(-2deg);
+  display: flex;
+  justify-content: center;
+}
+
+.studio-scene-image {
+  position: relative;
+  isolation: isolate;
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: 7px;
+  border-radius: 24px;
+  box-shadow: 0 14px 24px rgb(0 0 0 / 30%), 4px 6px 0 rgb(0 0 0 / 14%);
+  animation: studio-image-pop 420ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.studio-scene-image::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: #faf8f5;
+  border: 2px solid #141417;
+  outline: 4px solid white;
+  filter: url(#hand-drawn-boil);
+}
+
+.studio-scene-image-art {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: clamp(140px, 38vh, 410px);
+  object-fit: contain;
+  border-radius: 17px;
+}
+
+.studio-scene-image--slam { animation-name: studio-image-slam; }
+.studio-scene-image--float { animation-name: studio-image-float; }
+
+@keyframes studio-image-pop {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes studio-image-slam {
+  from { opacity: 0; transform: scale(1.06) rotate(-2deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes studio-image-float {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-scene-image { animation: none; }
+  .studio-dialogue-bubble { animation: none; transition: opacity 300ms ease; }
+}
+
+/* Standee gentle breathing / bounce when speaking */
+@keyframes standeeTalkBounce {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.018);
+  }
+}
+
+.standee-speaking {
+  animation: standeeTalkBounce 2.2s ease-in-out infinite;
+}
+
