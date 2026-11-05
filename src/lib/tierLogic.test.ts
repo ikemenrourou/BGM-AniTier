@@ -147,12 +147,15 @@ test('resolveGeminiModel normalizes legacy or empty models to gemini-3.8-flash',
 });
 
 test('default worldbooks separate knowledge from report formatting with configurable placement', () => {
-  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.length, 11);
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.length, 12);
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[0].id, 'wb-d0-default');
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[0].position, 'after-character');
-  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[1].id, 'wb-html-visualization');
-  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[1].priority, 9);
-  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[2].priority, 10);
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[0].priority, 100);
+  assert.match(DEFAULT_WORLD_BOOK_ENTRIES[0].content, /动画制作会社脾性雷达/);
+  assert.doesNotMatch(DEFAULT_WORLD_BOOK_ENTRIES[0].content, /<输出规范>/);
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[1].id, 'wb-ai-knowledge');
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-html-visualization')?.priority, 9);
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-report-output')?.priority, 10);
   const duo = DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-duo-partner');
   assert.equal(duo?.position, 'before-character');
   assert.equal(duo?.priority, 100);
@@ -163,6 +166,12 @@ test('default worldbooks separate knowledge from report formatting with configur
     [100, 110, 120, 200],
   );
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-anti-formula')?.title, '🎙️去八股');
+  const aiKnowledge = DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-ai-knowledge');
+  assert.equal(aiKnowledge?.title, 'AI相关知识库');
+  assert.equal(aiKnowledge?.enabled, false);
+  assert.equal(aiKnowledge?.position, 'after-character');
+  assert.equal(aiKnowledge?.scope, 'all');
+  assert.match(aiKnowledge?.content || '', /AI圈掌门人与焦点人物档案/);
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-couch-writing-style')?.title, '🎙️熟人连麦陪看腔');
   const writingStyle = DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-couch-writing-style')?.content || '';
   assert.match(writingStyle, /熟人连麦陪看与白话台本规范/);
@@ -208,7 +217,7 @@ test('default worldbooks separate knowledge from report formatting with configur
     gradingSystem: 'letter',
   });
   const bangumiIdx = prompt.indexOf('\n<bangumi_data>\n');
-  const knowledgeIdx = prompt.indexOf('<动画公司知识库>');
+  const knowledgeIdx = prompt.indexOf('动画制作会社脾性雷达');
   assert.ok(knowledgeIdx > 0 && knowledgeIdx < bangumiIdx);
   assert.ok(prompt.indexOf('<输出规范>') > bangumiIdx);
   assert.match(prompt, /title="互联网讽刺与生草造梗学"/);
