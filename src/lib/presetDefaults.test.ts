@@ -76,6 +76,21 @@ test('old stock whale sheets upgrade but edited sheets and character settings st
   assert.equal(normalizeStudioCompanions([{ ...saved, isCustom: true }])[0].prompt, oldPrompt);
 });
 
+test('whale sheets stay de-branded and the report never addresses an audience', () => {
+  // No single-streamer catchphrases or channel in-jokes in either stock sheet.
+  for (const word of ['杨国福', '大津波', '气音百味散', '杂音指示器', '脚苯', '高尔基', '美洲大蠊']) {
+    assert.ok(!FEIYU_DEFAULT_PERSONA_PROMPT.includes(word), `report sheet must not keep ${word}`);
+    assert.ok(!FEIYU_STUDIO_PERSONA_PROMPT.includes(word), `studio sheet must not keep ${word}`);
+  }
+  // The report is a private audit for one owner, so it has no audience to address.
+  for (const word of ['观众', '听众', '读者', '看官']) {
+    assert.ok(!FEIYU_DEFAULT_PERSONA_PROMPT.includes(word), `report sheet must not address ${word}`);
+  }
+  assert.ok(FEIYU_DEFAULT_PERSONA_PROMPT.includes('ACGN 锐评与深度品味审计专属大脑'));
+  assert.ok(FEIYU_STUDIO_PERSONA_PROMPT.includes('ACGN 锐评与 Tierlist 排榜专属大脑'));
+  assert.ok(FEIYU_STUDIO_PERSONA_PROMPT.includes('赛博作死前科'));
+});
+
 test('Atri uses the new avatar while stock saves migrate and custom art survives', () => {
   assert.equal(AI_ROLES.atri.avatarUrl, ATRI_AVATAR_URL);
   const atriDefault = DEFAULT_STUDIO_AI_COMPANIONS.find(character => character.id === 'studio-atri')!;
