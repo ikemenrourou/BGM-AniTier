@@ -1513,14 +1513,24 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
         setUserChar(normalizeStudioUserCharacter({ ...importedChar, id: 'studio-host' }));
         setEditingTargetRole('user');
       } else {
-        const targetId =
+        const desiredId =
           importedChar.id && importedChar.id !== 'studio-host'
             ? importedChar.id
             : `studio-custom-${Date.now()}`;
+        // A shared card can carry a built-in id (e.g. studio-feiyu) and silently replace
+        // the shipped sheet. Ask first; declining keeps the built-in and saves a new copy.
+        const builtIn = companions.find(c => c.id === desiredId && !c.isCustom);
+        const keepBuiltIn =
+          Boolean(builtIn) &&
+          !window.confirm(
+            `「${builtIn!.name}」是内置角色。\n\n确定要用导入的「${importedChar.name}」覆盖它吗？\n\n点「取消」会另存为一个新角色，内置角色保持不变。`,
+          );
+        const targetId = keepBuiltIn ? `studio-custom-${Date.now()}` : desiredId;
         const normalizedComp: StudioCharacterConfig = {
           ...importedChar,
           id: targetId,
           isCustom: targetId !== 'studio-feiyu',
+          ...(keepBuiltIn ? { name: `${importedChar.name}（导入）` } : {}),
         };
         setCompanions(prev => {
           const exists = prev.some(c => c.id === targetId);
