@@ -6,13 +6,14 @@
 
 个人 ACGN 分级 · 主观漫评墙 · AI 品味报告 · 录屏小剧场
 
-[在线体验](https://bgm-anitier2026.pages.dev/) · [功能](#功能) · [快速开始](#快速开始) · [部署](#部署) · [项目结构](#项目结构)
+[在线体验](https://bgm-anitier2026.pages.dev/) · [Releases](https://github.com/ikemenrourou/BGM-AniTier/releases) · [功能](#功能) · [快速开始](#快速开始) · [部署](#部署) · [项目结构](#项目结构)
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=fff)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=fff)](https://vite.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=fff)](https://tailwindcss.com/)
 [![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-live-F38020?logo=cloudflare&logoColor=fff)](https://bgm-anitier2026.pages.dev/)
+[![GitHub release](https://img.shields.io/github/v/release/ikemenrourou/BGM-AniTier?color=F38020&label=release)](https://github.com/ikemenrourou/BGM-AniTier/releases)
 
 </div>
 
