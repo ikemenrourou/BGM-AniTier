@@ -9,18 +9,20 @@ import type {
 } from '../types';
 import {
   ALL_TIER_SCORES,
+  ATRI_AVATAR_URL,
   formatTierLabel,
+  LEGACY_ATRI_AVATAR_URL,
   normalizeWorldBookEntries,
   seededUnitHash,
 } from './tierLogic';
 import { buildStudioSubjectContext } from './studioContext';
-import { buildFeiyuAssetUrl, FEIYU_DEFAULT_PERSONA_PROMPT, FEIYU_STUDIO_TASK_PROMPT, upgradeFeiyuPrompt } from './feiyuPersona';
+import { buildFeiyuAssetUrl, FEIYU_STUDIO_PERSONA_PROMPT, FEIYU_STUDIO_TASK_PROMPT, upgradeFeiyuStudioPrompt } from './feiyuPersona';
 import { DEFAULT_HOST_AVATAR_URL } from './studioHostAvatar';
 import { presetFingerprint } from './presetFingerprint';
 import { normalizeReportMarkup } from './reportMarkup';
 import { appliesToWorldBookScope, assemblePositionedPrompt, normalizePromptPlacement, sortPromptEntries } from './promptOrder';
 
-export { buildFeiyuAssetUrl, FEIYU_DEFAULT_PERSONA_PROMPT } from './feiyuPersona';
+export { buildFeiyuAssetUrl, FEIYU_STUDIO_PERSONA_PROMPT } from './feiyuPersona';
 
 /**
  * Dynamic expression name string (user can define any expression name, e.g., "摇头", "馋(筷子)", "得分(10分)", "笑", etc.)
@@ -880,13 +882,13 @@ export function updateStudioCharacter(character: StudioCharacterConfig, patch: P
 export const DEFAULT_STUDIO_AI_COMPANIONS: StudioCharacterConfig[] = [
   {
     id: 'studio-feiyu',
-    name: '大肥鱼 (鲸鱼娘)',
-    subtitle: '数据海洋女仆 · 主食白米饭',
+    name: '鱼',
+    subtitle: '数据海洋活宝 · 主食白米饭',
     defaultAvatarUrl: buildFeiyuAssetUrl('大肥鱼-思考(认真地).gif'),
     customExpressions: DEFAULT_FEIYU_EXPRESSIONS,
-    voicePreset: 'mochi_loli',
+    voicePreset: 'whale_murmur',
     voicePitch: 1.15,
-    prompt: FEIYU_DEFAULT_PERSONA_PROMPT,
+    prompt: FEIYU_STUDIO_PERSONA_PROMPT,
   },
   {
     id: 'studio-mesugaki',
@@ -909,9 +911,9 @@ export const DEFAULT_STUDIO_AI_COMPANIONS: StudioCharacterConfig[] = [
     id: 'studio-atri',
     name: '亚托莉',
     subtitle: '高性能仿生人',
-    defaultAvatarUrl: 'https://files.catbox.moe/bjawgi.jpg',
+    defaultAvatarUrl: ATRI_AVATAR_URL,
     customExpressions: [
-      { id: 'atri-default', name: '默认', url: 'https://files.catbox.moe/bjawgi.jpg', note: '默认立绘' },
+      { id: 'atri-default', name: '默认', url: ATRI_AVATAR_URL, note: '默认立绘' },
     ],
     voicePreset: 'atri_crystal',
     voicePitch: 1.16,
@@ -935,6 +937,9 @@ export function normalizeStudioCompanions(saved?: unknown): StudioCharacterConfi
               Boolean(item && typeof item === 'object' && typeof (item as StudioCustomExpression).name === 'string' && typeof (item as StudioCustomExpression).url === 'string'),
           )
           .map(item => {
+            if (character.id === 'studio-atri' && item.url === LEGACY_ATRI_AVATAR_URL) {
+              return { ...item, url: ATRI_AVATAR_URL };
+            }
             if (character.id === 'studio-feiyu' && item.followDefaultAvatar) {
               const stock = feiyuDefaultById.get(item.id);
               const restoredUrl = stock && item.url === character.defaultAvatarUrl ? stock.url : item.url;
@@ -961,12 +966,20 @@ export function normalizeStudioCompanions(saved?: unknown): StudioCharacterConfi
       } else {
         customExpressions = defaults.customExpressions.map(item => ({ ...item }));
       }
+      const isStockFeiyu = character.id === 'studio-feiyu' && !character.isCustom;
+      const upgradedPrompt = isStockFeiyu ? upgradeFeiyuStudioPrompt(character.prompt) : null;
+      const promptWasStock = Boolean(upgradedPrompt && character.prompt && upgradedPrompt !== character.prompt);
       return {
         ...defaults,
         ...character,
-        prompt: normalizeReportMarkup(character.id === 'studio-feiyu' && !character.isCustom
-          ? upgradeFeiyuPrompt(character.prompt)
-          : character.prompt ?? defaults.prompt ?? ''),
+        // Only untouched stock saves adopt the new studio name, subtitle and voice preset.
+        name: promptWasStock && character.name === '大肥鱼 (鲸鱼娘)' ? defaults.name : character.name,
+        subtitle: promptWasStock && character.subtitle === '数据海洋女仆 · 主食白米饭' ? defaults.subtitle : character.subtitle,
+        voicePreset: promptWasStock && character.voicePreset === 'mochi_loli' ? defaults.voicePreset : character.voicePreset,
+        defaultAvatarUrl: character.id === 'studio-atri' && (!character.defaultAvatarUrl || character.defaultAvatarUrl === LEGACY_ATRI_AVATAR_URL)
+          ? ATRI_AVATAR_URL
+          : character.defaultAvatarUrl,
+        prompt: normalizeReportMarkup(upgradedPrompt ?? character.prompt ?? defaults.prompt ?? ''),
         customExpressions,
       };
     });
@@ -1025,7 +1038,7 @@ export const DEFAULT_TIMELINE_RULE_TEMPLATE = `---
 export const DEFAULT_STUDIO_PROMPT_RULES_CONFIG: StudioPromptRulesConfig = {
   expressionRuleTemplate: DEFAULT_EXPRESSION_RULE_TEMPLATE,
   timelineRuleTemplate: DEFAULT_TIMELINE_RULE_TEMPLATE,
-  enabledWorldBookIds: ['wb-d0-default'],
+  enabledWorldBookIds: ['wb-d0-default', 'wb-duo-partner', 'wb-internet-satire', 'wb-anti-formula', 'wb-bangumi-predation', 'wb-couch-writing-style'],
   expressionRulePlacement: { position: 'd0', priority: 200 },
   timelineRulePlacement: { position: 'd0', priority: 200 },
 };
@@ -2134,7 +2147,7 @@ export function buildPlaybackSteps(
  * Automatically resolves `{{EXPRESSION_LIST}}`, `{{EMOTE_LIST}}`, `{{TOTAL_WORKS}}`,
  * and injects the selected world book entries in their configured positions.
  */
-export function getStudioWorldBookEntries(entries?: WorldBookEntry[], enabledIds: string[] = ['wb-d0-default']): WorldBookEntry[] {
+export function getStudioWorldBookEntries(entries?: WorldBookEntry[], enabledIds: string[] = DEFAULT_STUDIO_PROMPT_RULES_CONFIG.enabledWorldBookIds): WorldBookEntry[] {
   const enabled = new Set(enabledIds);
   return sortPromptEntries(normalizeWorldBookEntries(entries).filter(entry =>
     enabled.has(entry.id) && appliesToWorldBookScope(entry, 'studio') && entry.content.trim(),
@@ -2160,7 +2173,7 @@ export function buildStudioTimelinePrompt(params: {
     scriptItems,
     companion,
     worldBookEntries,
-    enabledWorldBookIds = ['wb-d0-default'],
+    enabledWorldBookIds = DEFAULT_STUDIO_PROMPT_RULES_CONFIG.enabledWorldBookIds,
     gradingSystem = 'numeric',
     enableExpressions = true,
     enableEmotes = true,
@@ -2274,7 +2287,7 @@ export function buildStudioTimelinePrompt(params: {
     `<bangumi_data>\n${timelineBlocks.join('\n\n')}\n</bangumi_data>`,
     bookendContext ? `<StudioBookends>\n${bookendContext}\n</StudioBookends>` : '',
   ].filter(Boolean).join('\n\n');
-  return normalizeReportMarkup(assemblePositionedPrompt(companion.prompt || FEIYU_DEFAULT_PERSONA_PROMPT, context, [
+  return normalizeReportMarkup(assemblePositionedPrompt(companion.prompt || FEIYU_STUDIO_PERSONA_PROMPT, context, [
     ...enabledWb,
     ...(resolvedExpressionBlock.trim()
       ? [{ id: 'studio-expression-rules', title: '表情差分与漫符规则', enabled: true, ...normalizePromptPlacement(expressionRulePlacement), content: resolvedExpressionBlock }]

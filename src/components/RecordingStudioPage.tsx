@@ -2930,7 +2930,12 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                         setPromptRules(prev => ({
                           ...prev,
                           enabledWorldBookIds: Array.from(
-                            new Set([...prev.enabledWorldBookIds, 'wb-d0-default'])
+                            new Set([
+                              ...prev.enabledWorldBookIds,
+                              ...DEFAULT_WORLD_BOOK_ENTRIES
+                                .filter(entry => entry.enabled && appliesToWorldBookScope(entry, 'studio'))
+                                .map(entry => entry.id),
+                            ])
                           ),
                         }));
                         setSelectedWbEntryId(restored[0]?.id ?? null);

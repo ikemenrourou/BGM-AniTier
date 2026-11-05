@@ -1,14 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { AI_ROLES, buildTasteReportPrompt, normalizeVisibleTiers } from './tierLogic';
-import { FEIYU_DEFAULT_PERSONA_PROMPT, FEIYU_REPORT_TASK_PROMPT, FEIYU_STUDIO_TASK_PROMPT, upgradeFeiyuPrompt } from './feiyuPersona';
+import { AI_ROLES, ATRI_AVATAR_URL, buildTasteReportPrompt, LEGACY_ATRI_AVATAR_URL, normalizeVisibleTiers } from './tierLogic';
+import { FEIYU_DEFAULT_PERSONA_PROMPT, FEIYU_REPORT_TASK_PROMPT, FEIYU_STUDIO_PERSONA_PROMPT, FEIYU_STUDIO_TASK_PROMPT, upgradeFeiyuPrompt } from './feiyuPersona';
 import { buildInitialStudioScriptList, buildStudioTimelinePrompt, DEFAULT_STUDIO_AI_COMPANIONS, DEFAULT_USER_STUDIO_CHARACTER, normalizeStudioCompanions, normalizeStudioUserCharacter, resolveCharacterStandeeUrl, updateStudioCharacter, type StudioCharacterConfig } from './studioDirector';
 import { createBackup, parseBackup } from './backup';
 import { fieldsToStorage, STUDIO_FIELDS, STUDIO_STORAGE_KEYS, STORAGE_KEYS } from './persistenceSchema';
 import { DEFAULT_THEME_ID, DEFAULT_THEME_VERSION, getInitialThemeId } from './themes';
 
-const oldPrompt = readFileSync(new URL('./fixtures/feiyu-persona-v1.txt', import.meta.url), 'utf8');
+const oldPrompt = readFileSync(new URL('./fixtures/feiyu-persona-v1.txt', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const oldStockPromptV2 = readFileSync(new URL('./fixtures/feiyu-persona-v2.txt', import.meta.url), 'utf8').replace(/\r\n/g, '\n').trim();
 const oldHost: StudioCharacterConfig = JSON.parse(readFileSync(new URL('./fixtures/studio-host-v1.json', import.meta.url), 'utf8'));
 
 test('new and retired four-row boards show all integer tiers while custom and letter selections survive', () => {
@@ -23,15 +24,19 @@ test('new and retired four-row boards show all integer tiers while custom and le
   assert.deepEqual(createBackup({ [STORAGE_KEYS.GRADING_SYSTEM]: 'letter' }).visibleTiers, [10, 8, 6, 4, 2]);
 });
 
-test('full whale sheet is sent once in reports and studio, with output adaptations after the data', () => {
+test('full whale sheets are sent once in reports and studio, with output adaptations after the data', () => {
   const tiers = { '9': [{ id: 301, title: '测试作品', cover: '', bgmScore: 8.1 }] };
   const report = buildTasteReportPrompt(tiers, [], 'feiyu');
   const studio = buildStudioTimelinePrompt({ scriptItems: buildInitialStudioScriptList(tiers, []), companion: DEFAULT_STUDIO_AI_COMPANIONS[0] });
   assert.equal(AI_ROLES.feiyu.prompt, FEIYU_DEFAULT_PERSONA_PROMPT);
+  assert.equal(DEFAULT_STUDIO_AI_COMPANIONS[0].prompt, FEIYU_STUDIO_PERSONA_PROMPT);
+  assert.equal(report.split(FEIYU_DEFAULT_PERSONA_PROMPT).length, 2);
+  assert.equal(studio.split(FEIYU_STUDIO_PERSONA_PROMPT).length, 2);
+  assert.ok(!studio.includes(FEIYU_DEFAULT_PERSONA_PROMPT));
+  assert.ok(report.includes('毒舌女仆'));
+  assert.ok(studio.includes('毒舌损友'));
   for (const prompt of [report, studio]) {
-    assert.equal(prompt.split(FEIYU_DEFAULT_PERSONA_PROMPT).length, 2);
-    assert.ok(prompt.includes('【你最欠揍的地方】'));
-    assert.ok(prompt.includes('【最后自检】'));
+    assert.ok(prompt.includes('<character_information character="大肥鱼">'));
     assert.ok(prompt.includes('测试作品'));
   }
   assert.ok(report.indexOf(FEIYU_REPORT_TASK_PROMPT) > report.indexOf('</bangumi_data>'));
@@ -40,18 +45,52 @@ test('full whale sheet is sent once in reports and studio, with output adaptatio
   assert.ok(!buildTasteReportPrompt(tiers, [], 'atri').includes(FEIYU_REPORT_TASK_PROMPT));
 });
 
-test('old stock whale sheet upgrades but edited sheets and character settings stay intact', () => {
-  const saved = { ...DEFAULT_STUDIO_AI_COMPANIONS[0], prompt: oldPrompt, voicePitch: 0.8, defaultAvatarUrl: 'data:image/png;base64,custom', customExpressions: [] };
+test('old stock whale sheets upgrade but edited sheets and character settings stay intact', () => {
+  const saved = {
+    ...DEFAULT_STUDIO_AI_COMPANIONS[0],
+    name: '大肥鱼 (鲸鱼娘)',
+    subtitle: '数据海洋女仆 · 主食白米饭',
+    voicePreset: 'mochi_loli' as const,
+    prompt: oldPrompt,
+    voicePitch: 0.8,
+    defaultAvatarUrl: 'data:image/png;base64,custom',
+    customExpressions: [],
+  };
   const upgraded = normalizeStudioCompanions([saved])[0];
-  assert.equal(upgraded.prompt, FEIYU_DEFAULT_PERSONA_PROMPT);
+  assert.equal(upgraded.prompt, FEIYU_STUDIO_PERSONA_PROMPT);
+  assert.equal(upgraded.name, '鱼');
+  assert.equal(upgraded.subtitle, '数据海洋活宝 · 主食白米饭');
+  assert.equal(upgraded.voicePreset, 'whale_murmur');
   assert.equal(upgraded.voicePitch, 0.8);
   assert.equal(upgraded.defaultAvatarUrl, saved.defaultAvatarUrl);
   assert.deepEqual(upgraded.customExpressions, []);
+  assert.equal(upgradeFeiyuPrompt(oldStockPromptV2), FEIYU_DEFAULT_PERSONA_PROMPT);
+  assert.equal(normalizeStudioCompanions([{ ...saved, prompt: oldStockPromptV2 }])[0].prompt, FEIYU_STUDIO_PERSONA_PROMPT);
   const customPrompt = `${oldPrompt}\n我的自定义补充：轻声说话。`;
   assert.equal(upgradeFeiyuPrompt(customPrompt), customPrompt);
   assert.equal(upgradeFeiyuPrompt(oldPrompt.replace(/\n/g, '\r\n')), FEIYU_DEFAULT_PERSONA_PROMPT);
-  assert.equal(normalizeStudioCompanions([{ ...saved, prompt: customPrompt }])[0].prompt, customPrompt);
+  const customStudio = normalizeStudioCompanions([{ ...saved, prompt: customPrompt, name: '我的鱼', voicePreset: 'atri_crystal' }])[0];
+  assert.equal(customStudio.prompt, customPrompt);
+  assert.equal(customStudio.name, '我的鱼');
+  assert.equal(customStudio.voicePreset, 'atri_crystal');
   assert.equal(normalizeStudioCompanions([{ ...saved, isCustom: true }])[0].prompt, oldPrompt);
+});
+
+test('Atri uses the new avatar while stock saves migrate and custom art survives', () => {
+  assert.equal(AI_ROLES.atri.avatarUrl, ATRI_AVATAR_URL);
+  const atriDefault = DEFAULT_STUDIO_AI_COMPANIONS.find(character => character.id === 'studio-atri')!;
+  assert.equal(atriDefault.defaultAvatarUrl, ATRI_AVATAR_URL);
+  assert.equal(atriDefault.customExpressions[0].url, ATRI_AVATAR_URL);
+  const stock = normalizeStudioCompanions([
+    { ...atriDefault, defaultAvatarUrl: LEGACY_ATRI_AVATAR_URL, customExpressions: [{ id: 'atri-default', name: '默认', url: LEGACY_ATRI_AVATAR_URL }] },
+  ])[0];
+  assert.equal(stock.defaultAvatarUrl, ATRI_AVATAR_URL);
+  assert.equal(stock.customExpressions[0].url, ATRI_AVATAR_URL);
+  const custom = normalizeStudioCompanions([
+    { ...atriDefault, defaultAvatarUrl: 'data:image/png;base64,atri', customExpressions: [{ id: 'mine', name: '笑', url: 'data:image/png;base64,mine' }] },
+  ])[0];
+  assert.equal(custom.defaultAvatarUrl, 'data:image/png;base64,atri');
+  assert.equal(custom.customExpressions[0].url, 'data:image/png;base64,mine');
 });
 
 test('retired private host upgrades to neutral assets without replacing custom art or voice', () => {

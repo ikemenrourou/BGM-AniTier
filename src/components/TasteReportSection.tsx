@@ -4,8 +4,8 @@ import { SafeReportFrame } from './SafeReportFrame';
 import { PromptPlacementControls } from './PromptPlacementControls';
 import { appliesToWorldBookScope, DEFAULT_PROMPT_PLACEMENT, describePromptPlacement, sortPromptEntries, WORLD_BOOK_SCOPE_LABELS } from '../lib/promptOrder';
 import { appStorage } from '../lib/appStorage';
-import { STORAGE_KEYS, STUDIO_STORAGE_KEYS } from '../lib/persistenceSchema';
-import { FEIYU_AVATAR_URL, FEIYU_DEFAULT_PERSONA_PROMPT, upgradeFeiyuPrompt } from '../lib/feiyuPersona';
+import { STORAGE_KEYS } from '../lib/persistenceSchema';
+import { FEIYU_AVATAR_URL, upgradeFeiyuPrompt } from '../lib/feiyuPersona';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Sparkles,
@@ -50,10 +50,12 @@ import type {
 import {
   AI_ROLES,
   ALL_TIER_SCORES,
+  ATRI_AVATAR_URL,
   DEFAULT_PERSONAS,
   DEFAULT_WORLD_BOOK_ENTRIES,
   buildTasteReportPrompt,
   formatTierLabel,
+  LEGACY_ATRI_AVATAR_URL,
   normalizeWorldBookEntries,
   normalizeWorldBookConfig,
   restoreDefaultWorldBookEntries,
@@ -117,68 +119,20 @@ const STICKERS_BY_ROLE: Record<string, string[]> = {
     'https://files.catbox.moe/dduita.png',
   ],
   cat_girl: ['https://files.catbox.moe/4j3i9t.png'],
-  atri: ['https://files.catbox.moe/bjawgi.jpg'],
+  atri: [ATRI_AVATAR_URL],
   patrick_star: ['https://files.catbox.moe/e1cxho.png'],
 };
-
-let cachedStudioCompanionsRaw: string | null = null;
-let cachedStudioFeiyuPrompt: string | null = null;
-
-function readStudioFeiyuPrompt(): string | null {
-  try {
-    const raw = appStorage.getItem(STUDIO_STORAGE_KEYS.COMPANIONS);
-    if (!raw) {
-      cachedStudioCompanionsRaw = null;
-      cachedStudioFeiyuPrompt = null;
-      return null;
-    }
-    if (raw === cachedStudioCompanionsRaw) {
-      return cachedStudioFeiyuPrompt;
-    }
-    cachedStudioCompanionsRaw = raw;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      cachedStudioFeiyuPrompt = null;
-      return null;
-    }
-    const found = parsed.find(
-      (item: unknown) =>
-        item &&
-        typeof item === 'object' &&
-        ((item as Record<string, unknown>).id === 'studio-feiyu' ||
-          String((item as Record<string, unknown>).name || '').includes('大肥鱼')),
-    ) as Record<string, unknown> | undefined;
-    if (found && typeof found.prompt === 'string' && found.prompt.trim()) {
-      cachedStudioFeiyuPrompt = upgradeFeiyuPrompt(found.prompt.trim());
-      return cachedStudioFeiyuPrompt;
-    }
-    cachedStudioFeiyuPrompt = null;
-  } catch {
-    // ignore
-  }
-  return null;
-}
 
 function normalizePersonasList(
   savedPersonas?: unknown[] | null,
   fromLegacyStorage = false,
 ): AIRoleConfig[] {
-  const studioFeiyuPrompt = readStudioFeiyuPrompt();
   if (!Array.isArray(savedPersonas) || savedPersonas.length === 0) {
-    return DEFAULT_PERSONAS.map(p =>
-      p.id === 'feiyu' && studioFeiyuPrompt
-        ? { ...p, prompt: normalizeReportMarkup(studioFeiyuPrompt) }
-        : { ...p },
-    );
+    return DEFAULT_PERSONAS.map(p => ({ ...p }));
   }
   const map = new Map<string, AIRoleConfig>();
   for (const def of DEFAULT_PERSONAS) {
-    map.set(
-      def.id,
-      def.id === 'feiyu' && studioFeiyuPrompt
-        ? { ...def, prompt: normalizeReportMarkup(studioFeiyuPrompt) }
-        : { ...def },
-    );
+    map.set(def.id, { ...def });
   }
   for (const raw of savedPersonas) {
     if (!raw || typeof raw !== 'object') continue;
@@ -187,7 +141,9 @@ function normalizePersonasList(
     if (!id) continue;
 
     let cleanName = typeof item.displayName === 'string' ? item.displayName : '自定义人设';
-    if (id === 'mesugaki' && (cleanName.includes('雌小鬼') || cleanName.includes('Mesugaki'))) {
+    if (id === 'feiyu' && (cleanName === '大肥鱼 (鲸鱼娘)' || cleanName === '大肥鱼')) {
+      cleanName = '鲸鱼娘';
+    } else if (id === 'mesugaki' && (cleanName.includes('雌小鬼') || cleanName.includes('Mesugaki'))) {
       cleanName = '婆罗门zako';
     } else if (id === 'cat_girl' && cleanName.includes('(Neko)')) {
       cleanName = '元气猫娘';
@@ -212,21 +168,14 @@ function normalizePersonasList(
       ? upgradeFeiyuPrompt(rawPrompt)
       : isOldGeneratedPrompt && fallbackDef ? fallbackDef.prompt : rawPrompt || fallbackDef?.prompt || '';
 
-    // If Taste Report's feiyu is still on the built-in default prompt while Studio's studio-feiyu was customized by the user, inherit Studio's prompt automatically
-    if (
-      isBuiltIn &&
-      id === 'feiyu' &&
-      studioFeiyuPrompt &&
-      prompt.trim() === FEIYU_DEFAULT_PERSONA_PROMPT.trim()
-    ) {
-      prompt = studioFeiyuPrompt;
-    }
+    // The report and studio now ship separate character sheets; never inherit one from the other.
 
     map.set(id, {
       id,
       displayName: cleanName,
-      avatarUrl:
-        typeof item.avatarUrl === 'string' && item.avatarUrl.trim()
+      avatarUrl: id === 'atri' && (!item.avatarUrl || item.avatarUrl === LEGACY_ATRI_AVATAR_URL)
+        ? ATRI_AVATAR_URL
+        : typeof item.avatarUrl === 'string' && item.avatarUrl.trim()
           ? item.avatarUrl
           : fallbackDef?.avatarUrl || 'https://files.catbox.moe/48ttww.png',
       prompt: normalizeReportMarkup(prompt),
@@ -764,11 +713,6 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
     const def = (AI_ROLES as Record<string, AIRoleConfig>)[personaId];
     if (!def) return;
     handleUpdatePersona(personaId, { ...def });
-  };
-
-  const handleSyncFeiyuFromStudio = () => {
-    const studioPrompt = readStudioFeiyuPrompt() || FEIYU_DEFAULT_PERSONA_PROMPT;
-    handleUpdatePersona('feiyu', { prompt: normalizeReportMarkup(studioPrompt) });
   };
 
   // Fetch available models from the user's configured API BaseURL
@@ -1648,18 +1592,6 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
                   </h4>
 
                   <div className="flex items-center gap-2">
-                    {editingPersona.id === 'feiyu' && (
-                      <button
-                        type="button"
-                        data-testid="sync-studio-feiyu-btn"
-                        onClick={handleSyncFeiyuFromStudio}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-xs text-sky-200 cursor-pointer"
-                        title="从小剧场的大肥鱼角色卡同步 Prompt"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>同步小剧场大肥鱼 Prompt</span>
-                      </button>
-                    )}
                     {editingPersona.isCustom ? (
                       <button
                         type="button"

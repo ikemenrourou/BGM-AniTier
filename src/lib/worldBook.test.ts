@@ -36,6 +36,35 @@ test('defaults keep report layout out of the studio and put expression/timeline 
   assert.doesNotMatch(studio, /<front_end_visualization>|<输出规范>|深度专栏排版|角色头像自动显示与节奏控制/);
 });
 
+test('new default rules keep recording guidance in the studio and share the satire guide', () => {
+  const report = buildTasteReportPrompt({}, [], 'atri');
+  const studio = buildStudioTimelinePrompt({ scriptItems: [], companion: DEFAULT_STUDIO_AI_COMPANIONS[0] });
+  assert.match(report, /title="互联网讽刺与生草造梗学"/);
+  for (const title of ['双人录屏搭档定位', '🎙️去八股', '🎙️Bangumi数据捕食与认知门控', '🎙️熟人连麦陪看腔']) {
+    assert.ok(!report.includes(`title="${title}"`), `${title} should stay out of reports`);
+  }
+  for (const title of ['⚡ 嘴臭DLC(可选)', '⚡ 阴阳怪气DLC(可选)', '⚡ XP拷打(可选)']) {
+    assert.ok(!report.includes(`title="${title}"`), `${title} should be off by default`);
+    assert.ok(!studio.includes(`title="${title}"`), `${title} should be off by default`);
+  }
+  assertOrder(studio, [
+    'title="双人录屏搭档定位"',
+    '<RoleDefinition>',
+    'title="通用 ACGN 知识库"',
+    'title="互联网讽刺与生草造梗学"',
+    'title="🎙️去八股"',
+    'title="🎙️Bangumi数据捕食与认知门控"',
+    'title="🎙️熟人连麦陪看腔"',
+    '\n<bangumi_data>\n',
+  ]);
+  const withDlc = buildStudioTimelinePrompt({
+    scriptItems: [],
+    companion: DEFAULT_STUDIO_AI_COMPANIONS[0],
+    enabledWorldBookIds: [...DEFAULT_STUDIO_PROMPT_RULES_CONFIG.enabledWorldBookIds, 'wb-rage-dlc'],
+  });
+  assertOrder(withDlc, ['title="🎙️Bangumi数据捕食与认知门控"', 'title="⚡ 嘴臭DLC(可选)"', 'title="🎙️熟人连麦陪看腔"']);
+});
+
 test('studio templates can be positioned before or after the character and interleaved with D0 entries', () => {
   const entries: WorldBookEntry[] = [{ id: 'between', title: '夹层', content: 'ORDER_BETWEEN', enabled: true, position: 'd0', priority: 200 }];
   const params = { scriptItems: [], companion: { ...DEFAULT_STUDIO_AI_COMPANIONS[0], prompt: 'ORDER_CHARACTER' }, worldBookEntries: entries, enabledWorldBookIds: ['between'], expressionRuleTemplate: 'ORDER_EXPRESSION', timelineRuleTemplate: 'ORDER_TIMELINE' };

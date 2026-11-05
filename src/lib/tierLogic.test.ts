@@ -15,6 +15,8 @@ import {
   restoreTierMapForNumericMode,
   AI_ROLES,
   DEFAULT_WORLD_BOOK_ENTRIES,
+  DEFAULT_HTML_VISUALIZATION_WB_CONTENT,
+  DEFAULT_REPORT_OUTPUT_CONTENT,
   normalizeWorldBookEntries,
   mergeTierMetadata,
 } from './tierLogic';
@@ -145,12 +147,49 @@ test('resolveGeminiModel normalizes legacy or empty models to gemini-3.8-flash',
 });
 
 test('default worldbooks separate knowledge from report formatting with configurable placement', () => {
-  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.length, 3);
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.length, 11);
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[0].id, 'wb-d0-default');
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[0].position, 'after-character');
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[1].id, 'wb-html-visualization');
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[1].priority, 9);
   assert.equal(DEFAULT_WORLD_BOOK_ENTRIES[2].priority, 10);
+  const duo = DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-duo-partner');
+  assert.equal(duo?.position, 'before-character');
+  assert.equal(duo?.priority, 100);
+  assert.equal(duo?.scope, 'studio');
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-internet-satire')?.scope, 'all');
+  assert.deepEqual(
+    DEFAULT_WORLD_BOOK_ENTRIES.filter(entry => entry.scope === 'studio').map(entry => entry.priority),
+    [100, 110, 120, 200],
+  );
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-anti-formula')?.title, '🎙️去八股');
+  assert.equal(DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-couch-writing-style')?.title, '🎙️熟人连麦陪看腔');
+  const writingStyle = DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-couch-writing-style')?.content || '';
+  assert.match(writingStyle, /熟人连麦陪看与白话台本规范/);
+  assert.doesNotMatch(writingStyle, /饭桌|窝沙发|碎嘴|太啰嗦/);
+  const antiFormula = DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-anti-formula')?.content || '';
+  assert.match(antiFormula, /当你在构思任何吐槽或锐评时/);
+  assert.doesNotMatch(antiFormula, /構思/);
+  const preservedTitle = normalizeWorldBookEntries([
+    {
+      ...DEFAULT_WORLD_BOOK_ENTRIES.find(entry => entry.id === 'wb-anti-formula')!,
+      content: antiFormula.replace('构思', '構思'),
+      title: '我的去八股',
+    },
+  ]);
+  assert.equal(preservedTitle.find(entry => entry.id === 'wb-anti-formula')?.title, '我的去八股');
+  assert.equal(preservedTitle.find(entry => entry.id === 'wb-anti-formula')?.content, antiFormula);
+  // The prompts forbid bold text, so their own examples must not use ** either.
+  assert.doesNotMatch(DEFAULT_HTML_VISUALIZATION_WB_CONTENT, /\*\*/);
+  assert.doesNotMatch(DEFAULT_REPORT_OUTPUT_CONTENT, /\*\*/);
+  assert.deepEqual(
+    DEFAULT_WORLD_BOOK_ENTRIES.filter(entry => entry.id.endsWith('-dlc')).map(entry => ({
+      title: entry.title, enabled: entry.enabled, position: entry.position, priority: entry.priority, scope: entry.scope,
+    })),
+    ['⚡ 嘴臭DLC(可选)', '⚡ 阴阳怪气DLC(可选)', '⚡ XP拷打(可选)'].map(title => ({
+      title, enabled: false, position: 'after-character', priority: 180, scope: 'all',
+    })),
+  );
 
   // No legacy ID is an excuse to remove user-authored entries or reinstall defaults.
   const normalized = normalizeWorldBookEntries([
@@ -172,6 +211,8 @@ test('default worldbooks separate knowledge from report formatting with configur
   const knowledgeIdx = prompt.indexOf('<动画公司知识库>');
   assert.ok(knowledgeIdx > 0 && knowledgeIdx < bangumiIdx);
   assert.ok(prompt.indexOf('<输出规范>') > bangumiIdx);
+  assert.match(prompt, /title="互联网讽刺与生草造梗学"/);
+  assert.doesNotMatch(prompt, /title="双人录屏搭档定位"/);
 });
 
 test('extractTitleFromFileName strips extension and preserves anime/book/game title cleanly', async () => {
