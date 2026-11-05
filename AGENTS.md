@@ -10,7 +10,7 @@ BGM AniTier v2.0 is a personal anime ranking and taste-analysis app: a drag-and-
 - Two distinct builds, do not mix them:
   - `npm run build` → `dist/`, `publicDir = public/` (includes personal AI Studio media). Local/server use only.
   - `npm run build:cf` → `dist-static/`, `publicDir = cloudflare/pages/` (ships `_worker.js` + `_routes.json`, excludes `public/`). This is the publishable artifact.
-- Deploy `dist-static/` from a directory outside the repo: `wrangler pages deploy . --project-name bgm-anitier2026 --branch main`. Never deploy from the repo root and never upload `.data/`, `.env`, backups, or `public/assets/aistudio/`.
+- Deploy `dist-static/` from a directory outside the repo: `wrangler pages deploy . --project-name bgm-anitier --branch main`. Never deploy from the repo root and never upload `.data/`, `.env`, backups, or `public/assets/aistudio/`.
 
 ## Commands
 

@@ -7,7 +7,7 @@
 个人 ACGN 分级 · 主观漫评墙 · AI 品味报告 · 录屏小剧场
 
 <p>
-  <a href="https://bgm-anitier2026.pages.dev/"><strong>🌐 直接在线使用 →</strong></a><br />
+  <a href="https://bgm-anitier.pages.dev/"><strong>🌐 直接在线使用 →</strong></a><br />
   <sub>无需安装，打开浏览器即用。</sub>
 </p>
 
@@ -15,12 +15,12 @@
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=fff)](https://www.typescriptlang.org/)
-[![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-live-F38020?logo=cloudflare&logoColor=fff)](https://bgm-anitier2026.pages.dev/)
+[![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-live-F38020?logo=cloudflare&logoColor=fff)](https://bgm-anitier.pages.dev/)
 [![GitHub release](https://img.shields.io/github/v/release/ikemenrourou/BGM-AniTier?color=F38020&label=release)](https://github.com/ikemenrourou/BGM-AniTier/releases)
 
 </div>
 
-[![BGM AniTier Tier List 主界面](docs/screenshots/01-tier-list.webp)](https://bgm-anitier2026.pages.dev/)
+[![BGM AniTier Tier List 主界面](docs/screenshots/01-tier-list.webp)](https://bgm-anitier.pages.dev/)
 
 ## 功能
 
@@ -42,7 +42,7 @@
 
 ## 在线使用
 
-**https://bgm-anitier2026.pages.dev/**
+**https://bgm-anitier.pages.dev/**
 
 打开即用，不需要安装。榜单、短评、报告和小剧场都在浏览器里运行；线上版没有服务器存档，换设备前先在设置里导出全量备份。
 
@@ -60,7 +60,7 @@ npm run dev
 ## 部署
 
 - 本地 / 自托管：`npm run build`，`NODE_ENV=production npm start`。
-- Cloudflare Pages：`npm run build:cf`；把 `dist-static/` 复制到仓库外，再执行 `wrangler pages deploy . --project-name bgm-anitier2026 --branch main`。
+- Cloudflare Pages：`npm run build:cf`；把 `dist-static/` 复制到仓库外，再执行 `wrangler pages deploy . --project-name bgm-anitier --branch main`。
 - 不要在仓库根目录直接部署，避免带上 `.data/`、`.env` 和个人素材。
 
 ## 数据与备份
