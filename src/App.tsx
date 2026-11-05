@@ -16,6 +16,8 @@ import {
   DEFAULT_VISIBLE_TIERS,
   LETTER_DEFAULT_VISIBLE_TIERS,
   LETTER_TIER_SCORES,
+  DEFAULT_WORLD_BOOK_ENTRIES,
+  DEFAULT_PERSONAS,
   createEmptyTierMap,
   normalizeTierMap,
   normalizeVisibleTiers,
@@ -30,6 +32,10 @@ import {
   formatTierBadgeText,
   createCustomWorkId,
 } from './lib/tierLogic';
+import {
+  DEFAULT_STUDIO_PROMPT_RULES_CONFIG,
+  DEFAULT_STUDIO_AI_COMPANIONS,
+} from './lib/studioDirector';
 import {
   DEFAULT_USER_BGM_TOKEN,
   extractTitleFromFileName,
@@ -56,7 +62,7 @@ import { AmbientBackgroundCanvas } from './components/AmbientBackgroundCanvas';
 import { RecordingStudioPage } from './components/RecordingStudioPage';
 import { Tv, BookOpen, Gamepad2, Github } from 'lucide-react';
 
-import { STORAGE_KEYS } from './lib/persistenceSchema';
+import { STORAGE_KEYS, STUDIO_STORAGE_KEYS } from './lib/persistenceSchema';
 import { appStorage, flushStorage, importStorage } from './lib/appStorage';
 import { createBackup, parseBackup } from './lib/backup';
 import { downloadBackup } from './components/StorageStatus';
@@ -880,13 +886,17 @@ export function App() {
     }
   };
 
-  const handleExportJson = () => {
+  const handleExportJson = (includeCredentials = false) => {
     if (isExportingBackup) return;
     setIsExportingBackup(true);
     try {
-      const snapshot = createBackup(appStorage.snapshot());
-      downloadBackup(snapshot, (boardTitle || 'bgm-anitier') + '-all-in-one-backup.json');
-      showToast('全量备份已导出（本地上传图片已内嵌，外链保持原地址；含密钥请妥善保管）');
+      const snapshot = createBackup(appStorage.snapshot(), { includeCredentials });
+      downloadBackup(snapshot, (boardTitle || 'bgm-anitier') + '-backup.json');
+      showToast(
+        includeCredentials
+          ? '备份已导出（含 API Key 与 Bangumi Token，请妥善保管）'
+          : '脱敏备份已导出（已自动剔除个人密钥，可安全分享）',
+      );
     } catch {
       showToast('导出失败，请重试；当前数据保留');
     } finally {
@@ -909,14 +919,60 @@ export function App() {
     }
   };
 
+  const handleResetPromptsAndWorldBooks = () => {
+    const nextAiConfig: AIConfig = {
+      ...aiConfig,
+      worldBookEntries: DEFAULT_WORLD_BOOK_ENTRIES.map(e => ({ ...e })),
+      personas: DEFAULT_PERSONAS.map(p => ({ ...p })),
+      d0Prompt: '',
+    };
+    setAiConfig(nextAiConfig);
+    try {
+      appStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(nextAiConfig));
+      appStorage.setItem(
+        STUDIO_STORAGE_KEYS.PROMPT_RULES,
+        JSON.stringify(DEFAULT_STUDIO_PROMPT_RULES_CONFIG),
+      );
+      appStorage.setItem(
+        STUDIO_STORAGE_KEYS.COMPANIONS,
+        JSON.stringify(DEFAULT_STUDIO_AI_COMPANIONS),
+      );
+    } catch {
+      // ignore
+    }
+    setSettingsState(prev => ({ ...prev, isOpen: false }));
+    showToast('已重置全局世界书、人设与小剧场规则模板为最新默认配置');
+  };
+
   const handleClearAllData = () => {
     setTiers(createEmptyTierMap());
     setUnrankedPool([]);
     setComments([]);
     setSavedReport('');
     setHighlightedTag(null);
+    const nextAiConfig: AIConfig = {
+      ...aiConfig,
+      worldBookEntries: DEFAULT_WORLD_BOOK_ENTRIES.map(e => ({ ...e })),
+      personas: DEFAULT_PERSONAS.map(p => ({ ...p })),
+      d0Prompt: '',
+    };
+    setAiConfig(nextAiConfig);
+    try {
+      appStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(nextAiConfig));
+      appStorage.setItem(STUDIO_STORAGE_KEYS.SCRIPT, JSON.stringify([]));
+      appStorage.setItem(
+        STUDIO_STORAGE_KEYS.PROMPT_RULES,
+        JSON.stringify(DEFAULT_STUDIO_PROMPT_RULES_CONFIG),
+      );
+      appStorage.setItem(
+        STUDIO_STORAGE_KEYS.COMPANIONS,
+        JSON.stringify(DEFAULT_STUDIO_AI_COMPANIONS),
+      );
+    } catch {
+      // ignore
+    }
     setSettingsState(prev => ({ ...prev, isOpen: false }));
-    showToast('已清空全部排行榜数据（API 与 BGM Token 保留）');
+    showToast('已清空排行榜并恢复默认世界书与提示词配置（API 与 BGM Token 保留）');
   };
 
   const activeTheme = getThemeById(activeThemeId);
@@ -1167,7 +1223,7 @@ export function App() {
                 data-testid="tierlist-export-footer"
                 className="relative z-10 mt-6 pt-4 border-t border-white/[0.07] flex items-center justify-between text-[11px] text-white/40 font-mono"
               >
-                <span>BGM ANITIER · github.com/ikemenrourou/BGM-AniTier</span>
+                <span>BGM ANITIER · TIER LIST VISUAL ARCHIVE</span>
                 <span>
                   {new Date().toISOString().slice(0, 10)} · {exportCategoryCounts.total} WORKS ARCHIVED
                 </span>
@@ -1277,7 +1333,7 @@ export function App() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.1] text-white/80 hover:text-white font-mono text-xs transition-colors"
               >
                 <Github className="w-3.5 h-3.5" />
-                <span>github.com/ikemenrourou/BGM-AniTier</span>
+                <span>BGM-AniTier · GitHub</span>
               </a>
             </footer>
           </>
@@ -1385,6 +1441,7 @@ export function App() {
         onExportJson={handleExportJson}
         isExportingBackup={isExportingBackup}
         onImportJsonFile={handleImportJsonFile}
+        onResetPromptsAndWorldBooks={handleResetPromptsAndWorldBooks}
         onClearAllData={handleClearAllData}
       />
     </div>

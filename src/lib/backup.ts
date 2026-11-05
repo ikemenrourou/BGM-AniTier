@@ -107,7 +107,7 @@ export function parseBackup(input: unknown): StorageValues {
     if (s.userChar !== undefined) { requireValue(isRecord(s.userChar), 'studio.userChar'); character(s.userChar, 'studio.userChar'); }
     if (s.companions !== undefined) { records(s.companions, 'studio.companions', character); requireValue(s.companions.length > 0, 'studio.companions'); }
     optionalText(s, ['selectedCompanionId', 'metaCardStyle'], 'studio');
-    for (const name of ['enableExpressions', 'enableEmotes', 'isPoolBlindBox', 'isVoiceMuted']) requireValue(s[name] === undefined || typeof s[name] === 'boolean', `studio.${name}`);
+    for (const name of ['enableExpressions', 'enableEmotes', 'isPoolBlindBox', 'isVoiceMuted', 'isSfxMuted']) requireValue(s[name] === undefined || typeof s[name] === 'boolean', `studio.${name}`);
     for (const name of ['bubbleFontSize', 'speechSpeed', 'standeeScale']) requireValue(s[name] === undefined || (Number.isFinite(s[name]) && s[name] > 0), `studio.${name}`);
     if (s.promptRules !== undefined) {
       requireValue(isRecord(s.promptRules), 'studio.promptRules');
@@ -125,13 +125,17 @@ export function parseBackup(input: unknown): StorageValues {
         optionalText(s.bookends[key], ['userText', 'aiRawText'], `studio.bookends.${key}`);
         for (const field of ['enabled', 'generateAi']) requireValue(s.bookends[key][field] === undefined || typeof s.bookends[key][field] === 'boolean', `studio.bookends.${key}.${field}`);
       }
+      if (s.bookends.finaleImages !== undefined) {
+        requireValue(Array.isArray(s.bookends.finaleImages) && s.bookends.finaleImages.every((x: unknown) => typeof x === 'string'), 'studio.bookends.finaleImages');
+      }
     }
     studio = fieldsToStorage(s, STUDIO_FIELDS);
   }
   return { ...fieldsToStorage(parsed), ...studio };
 }
 
-export function createBackup(values: StorageValues) {
+export function createBackup(values: StorageValues, options?: { includeCredentials?: boolean }) {
+  const includeCredentials = options?.includeCredentials ?? true;
   const board = {
     tiers: normalizeTierMap({}), unrankedPool: [], comments: [],
     boardTitle: '动画 Tier List 鉴赏排行', visibleTiers: [...DEFAULT_VISIBLE_TIERS], gradingSystem: 'numeric',
@@ -141,6 +145,14 @@ export function createBackup(values: StorageValues) {
     savedReport: '', reportChat: [], aiConfig: {}, bgmSyncConfig: { token: '' },
     ...storageToFields(values),
   };
+  if (!includeCredentials) {
+    if (board.aiConfig && typeof board.aiConfig === 'object') {
+      board.aiConfig = { ...board.aiConfig, apiKey: '' };
+    }
+    if (board.bgmSyncConfig && typeof board.bgmSyncConfig === 'object') {
+      board.bgmSyncConfig = { ...board.bgmSyncConfig, token: '' };
+    }
+  }
   if (!values[STORAGE_KEYS.VISIBLE_TIERS] && board.gradingSystem === 'letter') {
     board.visibleTiers = [...LETTER_DEFAULT_VISIBLE_TIERS];
   }
@@ -151,7 +163,7 @@ export function createBackup(values: StorageValues) {
       userChar: DEFAULT_USER_STUDIO_CHARACTER, companions: DEFAULT_STUDIO_AI_COMPANIONS,
       selectedCompanionId: 'studio-feiyu', enableExpressions: true, enableEmotes: true,
       metaCardStyle: 'wide-feather', isPoolBlindBox: false, promptRules: DEFAULT_STUDIO_PROMPT_RULES_CONFIG,
-      bubbleFontSize: 17, standeeScale: 1.15, speechSpeed: 1, isVoiceMuted: false, bookends: normalizeStudioBookends(),
+      bubbleFontSize: 17, standeeScale: 1.15, speechSpeed: 1, isVoiceMuted: false, isSfxMuted: false, bookends: normalizeStudioBookends(),
       ...storageToFields(values, STUDIO_FIELDS),
     },
   };

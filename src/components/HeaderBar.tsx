@@ -80,6 +80,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(boardTitle);
+  const [showViewMenu, setShowViewMenu] = useState(false);
 
   const handleSaveTitle = () => {
     const trimmed = draftTitle.trim();
@@ -101,7 +102,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-semibold transition-colors duration-150 shadow-sm cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span>添加作品 / 批量传图</span>
+          <span>添加作品 / 传图</span>
         </button>
 
         <div className="inline-flex items-center rounded-full bg-white/[0.08] border border-white/[0.12] p-0.5">
@@ -113,7 +114,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-white/[0.12] text-xs font-semibold text-white transition-colors duration-150 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 text-white/80" />
-            <span>BGM 追番同步</span>
+            <span>BGM 同步</span>
           </button>
 
           {onOpenBgmPush && (
@@ -132,32 +133,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
         <button
           type="button"
-          data-testid="open-poster-wall-btn"
-          onClick={onOpenPosterWall}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.12] text-xs font-semibold text-white transition-colors duration-150 cursor-pointer"
-        >
-          <LayoutGrid className="w-3.5 h-3.5 text-white/80" />
-          <span>季度海报墙</span>
-        </button>
-
-        {/* 1-10 Score vs S-D Tier Quick Toggle */}
-        <button
-          type="button"
-          data-testid="toggle-grading-system-btn"
-          onClick={onToggleGradingSystem}
-          title="在「1-10 分制」与「S-D 档位制（S/A/B/C/D）」之间一键无损切换"
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-colors duration-150 cursor-pointer ${
-            gradingSystem === 'letter'
-              ? 'bg-white text-zinc-950 border-white shadow-xs'
-              : 'bg-white/[0.08] hover:bg-white/[0.14] border-white/[0.14] text-white'
-          }`}
-        >
-          <Award className="w-3.5 h-3.5" />
-          <span>{gradingSystem === 'letter' ? '分制: S-D 档位' : '分制: 1-10 分'}</span>
-        </button>
-
-        <button
-          type="button"
           onClick={onTogglePool}
           aria-pressed={isPoolOpen}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-colors duration-150 cursor-pointer ${
@@ -167,7 +142,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           }`}
         >
           <Inbox className="w-3.5 h-3.5" />
-          <span>待排候选池 ({poolCount})</span>
+          <span>候选池 ({poolCount})</span>
         </button>
 
         <button
@@ -175,7 +150,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           data-testid="open-recording-studio-btn"
           onClick={onToggleRecordingMode}
           aria-pressed={isRecordingMode}
-          title="进入 16:9 录屏演播室子页面（双人 RPG 剧场 + 上下渐隐自动滑轨 + 右上角延迟亮分大卡 + 防剧透 AI 台本）"
+          title="进入双人吐槽小剧场（支持 AI 生成吐槽台本、演播舞台与手账卡片导出）"
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-colors duration-150 cursor-pointer ${
             isRecordingMode
               ? 'bg-rose-500/20 border-rose-400/40 text-rose-200'
@@ -183,60 +158,110 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           }`}
         >
           <Video className="w-3.5 h-3.5 text-rose-300" />
-          <span>{isRecordingMode ? '退出录屏演播室' : '16:9 录屏演播室'}</span>
+          <span>{isRecordingMode ? '退出小剧场' : '小剧场'}</span>
         </button>
-
-        {gradingSystem === 'numeric' && (
-          <button
-            type="button"
-            onClick={onToggleAllHalfTiers}
-            aria-pressed={showHalfTiers}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-colors duration-150 cursor-pointer ${
-              showHalfTiers
-                ? 'bg-white/[0.16] border-white/30 text-white'
-                : 'bg-white/[0.05] hover:bg-white/[0.1] border-white/[0.09] text-white/75'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>0.5 半分档</span>
-          </button>
-        )}
 
         <button
           type="button"
-          data-testid="cycle-tier-row-style-btn"
-          onClick={onCycleTierRowStyle}
-          title="切换 Tier 矩形背景样式（动态弥散光毛玻璃 / 极简无框 / 悬浮分体 / 全透明）"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.09] text-xs font-medium text-white/85 transition-colors duration-150 cursor-pointer"
+          data-testid="open-poster-wall-btn"
+          onClick={onOpenPosterWall}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.12] text-xs font-semibold text-white transition-colors duration-150 cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-white/75" />
-          <span>{ROW_STYLE_SHORT_LABELS[tierRowStyle]}</span>
+          <LayoutGrid className="w-3.5 h-3.5 text-white/80" />
+          <span>海报墙</span>
         </button>
 
-        {/* Export Image + Empty Tier Filter Toggle */}
-        <div className="inline-flex items-center rounded-full bg-white/[0.05] border border-white/[0.09] p-0.5">
+        <button
+          type="button"
+          onClick={onExportImage}
+          disabled={isExportingImage}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-xs font-medium text-white/90 transition-colors duration-150 cursor-pointer disabled:opacity-50"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>{isExportingImage ? '生成长图中...' : '导出长图'}</span>
+        </button>
+
+        {/* Compact View & Appearance Quick Menu */}
+        <div className="relative">
           <button
             type="button"
-            onClick={onExportImage}
-            disabled={isExportingImage}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-white/[0.1] text-xs font-medium text-white/90 transition-colors duration-150 cursor-pointer disabled:opacity-50"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>{isExportingImage ? '生成长图中...' : '导出榜单长图'}</span>
-          </button>
-          <button
-            type="button"
-            data-testid="toggle-export-empty-tiers-btn"
-            onClick={onToggleExportHideEmptyTiers}
-            title="切换导出长图时是否隐藏没有作品的空白 Tier 行"
-            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
-              exportHideEmptyTiers
-                ? 'bg-white text-zinc-950'
-                : 'text-white/65 hover:text-white hover:bg-white/[0.08]'
+            data-testid="header-view-options-btn"
+            onClick={() => setShowViewMenu(v => !v)}
+            aria-expanded={showViewMenu}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-colors duration-150 cursor-pointer ${
+              showViewMenu
+                ? 'bg-white text-zinc-950 border-white'
+                : 'bg-white/[0.05] hover:bg-white/[0.1] border-white/[0.09] text-white/85'
             }`}
           >
-            {exportHideEmptyTiers ? '仅非空Tier' : '全保留'}
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>视图选项</span>
           </button>
+
+          {showViewMenu && (
+            <div className="absolute right-0 top-10 z-50 w-64 rounded-2xl border border-white/15 bg-zinc-950/95 backdrop-blur-xl p-3 shadow-2xl space-y-2">
+              <div className="text-[11px] font-bold text-white/50 px-1">快捷视图与截图选项</div>
+
+              <button
+                type="button"
+                data-testid="toggle-grading-system-btn"
+                onClick={onToggleGradingSystem}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs text-white cursor-pointer"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-amber-300" />
+                  <span>评级分制</span>
+                </span>
+                <span className="font-bold text-white/90">
+                  {gradingSystem === 'letter' ? 'S-D 档位' : '1-10 分'}
+                </span>
+              </button>
+
+              {gradingSystem === 'numeric' && (
+                <button
+                  type="button"
+                  onClick={onToggleAllHalfTiers}
+                  aria-pressed={showHalfTiers}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs text-white cursor-pointer"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-sky-300" />
+                    <span>0.5 半分档</span>
+                  </span>
+                  <span className="font-bold text-white/90">
+                    {showHalfTiers ? '已开启' : '已隐藏'}
+                  </span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                data-testid="cycle-tier-row-style-btn"
+                onClick={onCycleTierRowStyle}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs text-white cursor-pointer"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+                  <span>档位底板</span>
+                </span>
+                <span className="font-bold text-white/90">
+                  {ROW_STYLE_SHORT_LABELS[tierRowStyle].replace('档位: ', '')}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                data-testid="toggle-export-empty-tiers-btn"
+                onClick={onToggleExportHideEmptyTiers}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs text-white cursor-pointer"
+              >
+                <span>导出长图空档位</span>
+                <span className="font-bold text-white/90">
+                  {exportHideEmptyTiers ? '隐藏空行' : '保留全部'}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
         <button

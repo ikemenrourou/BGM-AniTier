@@ -11,6 +11,7 @@ import type {
   WorldBookEntry,
 } from '../types';
 import { FEIYU_AVATAR_URL, FEIYU_DEFAULT_PERSONA_PROMPT, FEIYU_REPORT_TASK_PROMPT } from './feiyuPersona';
+import { presetFingerprint } from './presetFingerprint';
 import { buildBangumiDiscussionContext } from './studioContext';
 import { normalizeReportMarkup } from './reportMarkup';
 import { appliesToWorldBookScope, assemblePositionedPrompt, normalizePromptPlacement } from './promptOrder';
@@ -358,14 +359,18 @@ export function resolveGeminiModel(requestedModel?: string | null): string {
  * Legacy combined preset, retained only to split existing backups without losing text.
  */
 export const LEGACY_D0_KNOWLEDGE_CONTENT = `<输出规范>
-- 输出时可以使用Markdown语法+结构化内容（如二级标题 \`##\`、三级标题 \`###\`、引用块 \`>\`、分隔线 \`---\`），保持连贯流畅的深度专栏排版。
-- 请不要使用**双星号**包裹内容的Markdown语法，用户的设备不支持显示。
-- 提到作品标题时请使用书名号 \`《作品名》\` 包裹（在小标题 \`### 《作品名》\` 中前端会自动渲染左封右文大幅封面抬头，正文中提及 \`《作品名》\` 则保持清爽的加粗文字）。
-- **角色头像自动显示与节奏控制**：提到 \`<bangumi_data>\` 中列出的具体角色名时，使用 \`【角色名】\` 包裹（例如 \`【芙莉莲】\`、\`【后藤一里】\`、\`【八奈见杏菜】\`、\`【锦木千束】\`）即可在正文中触发该角色的真实立绘头像渲染。为保证版面呼吸感、避免单段内头像过度拥挤：
-  1. 建议优先在角色**首次正式登场**时使用 \`【角色名】\` 亮出头像；
-  2. 若同一段落同时盘点多名角色，建议挑选最核心的 **1～3 名焦点角色**使用 \`【角色名】\`，其余顺带提及的角色直接写名字即可；
-  3. 同一角色在后文普通顺带提及时可直接写名字，但如果遇到**特别关键的剧情高光、核心槽点、灵魂名场面或强烈反差对比处**，依然可以再次使用 \`【角色名】\` 触发头像加以强调！
-- 提到“监督名、脚本家、声优名、制作公司/出版社/开发商名”时可以用 inline code 包裹（如 \`斋藤圭一郎\`、\`CloverWorks\`、\`种崎敦美\`）。
+---
+报告排版与标记系统:
+  description: 控制深度专栏排版的 Markdown 层级、作品封面抬头与角色立绘头像自动渲染
+  rule:
+    - 使用结构化 Markdown 排版（如二级标题 \`##\`、三级标题 \`###\`、引用块 \`>\`、分隔线 \`---\`），保持连贯流畅的深度专栏质感
+    - 正文强调请直接通过句式、小标题或单反引号行内代码表达，避免使用双星号包裹文本
+    - 提及作品标题时统一使用书名号 \`《\${作品名}》\` 包裹（在三级标题 \`### 《\${作品名}》\` 中前端会自动渲染左封右文大幅封面抬头，正文中提及 \`《\${作品名}》\` 则渲染为清爽的重点文字）
+    - 角色头像自动显示与节奏控制：提及 \`<bangumi_data>\` 中列出的具体角色名时，使用方头括号 \`【\${角色名}】\` 包裹即可在正文中触发该角色的真实立绘头像渲染。为保证版面呼吸感、避免单段内头像过度密集：
+      1. 优先在角色**首次正式登场**时使用 \`【\${角色名}】\` 亮出头像；
+      2. 若同一段落同时盘点多名角色，挑选最核心的 **1～3 名焦点角色**使用 \`【\${角色名}】\`，其余顺带提及的角色直接写名字；
+      3. 同一角色在后文普通顺带提及时直接写名字，遇到**关键剧情高光、核心槽点、灵魂名场面或强烈反差对比处**时可再次使用 \`【\${角色名}】\` 触发头像强调
+    - 提及监督、脚本家、声优、制作公司、出版社或开发商名称时，使用单反引号包裹：\`\${监督或脚本名}\`、\`\${制作公司或厂商名}\`、\`\${声优名}\`
 </输出规范>
 
 <动画公司知识库>
@@ -380,12 +385,12 @@ export const LEGACY_D0_KNOWLEDGE_CONTENT = `<输出规范>
 ### ufotable (飞碟社)
 锐评/梗概: 飞碟桌啊，抱上了型月和鬼灭这两条金大腿，直接起飞！作画摄影是顶级，突出一个"经费在燃烧"和"亮瞎狗眼的光污染"！本社化制作，质量稳定得一批，虽然文戏演出有时让人捉急，但关键时刻还是那句"早知道，还是UFO！"现在还勾搭上了原神，我看是要承包二次元的半壁江山咯？
 **近期/代表作:** 《Fate》系列 (Zero, Heaven's Feel)、《鬼灭之刃》系列、《魔法使之夜》、《原神》PV
-**小提示:** 打斗还得看我UFO，其他都是臭鱼烂虾！
+**小提示:** 打斗还得看UFO，特效摄影独一档！
 
 ### BONES (骨头社)
 锐评/梗概: 骨头社？日升老员工出来单干的，作画和演出那是真的牛逼！什么《灵能》《小英雄》，打戏看得人高潮迭起。以前老被说"叫好不叫座"，靠南社长三寸不烂之舌忽悠投资。现在嘛，流媒体时代可把它抬起来了，网飞的香饽饽！就是产能嘛...嘿嘿，别太指望。
 **近期/代表作:** 《灵能百分百》系列、《我的英雄学院》系列、《文豪野犬》系列、《无限滑板》、《瓦尼塔斯的手记》
-**小提示:** 作画厨的天堂，剧情？能吃吗？
+**小提示:** 作画厨的天堂，剧情上限看企划与脚本。
 
 ### CloverWorks (CW)
 锐评/梗概: CW社，A-1高圆寺分部独立出来的，福岛P的王牌班底，虽然搞出过国家队和FGO7这种让豚豚和月厨一起破防的玩意儿，但人家缓过来了啊！《奇蛋》《滚》一出，lsp和萌豚又高呼CW是我爹！新人培养有一手，商业嗅觉也灵敏，还抱上了《间谍过家家》的大腿，风头无两！
@@ -395,13 +400,13 @@ export const LEGACY_D0_KNOWLEDGE_CONTENT = `<输出规范>
 ### WIT STUDIO (霸权社)
 锐评/梗概: 啊，霸权社，IG的亲儿子。当年靠《巨人》和《鬼灯》确实霸权过，后来嘛...《甲铁城的卡巴内利》拉了胯，差点成笑话。好在制作底子还在，近年靠着IG老爹输血（还债），又抱上了《间谍过家家》这条更粗的大腿，现在儿子翻身当了爹（指社长兼任IG社长），老东西这是爆金币了？
 **近期/代表作:** 《间谍过家家》、《国王排名》、《泡泡》、《冰海战记2》(与MAPPA合作)、《魔法使的新娘》
-**小提示:** 曾经的霸权，现在的打工皇帝！
+**小提示:** 曾经的霸权，现在的精锐主力厂！
 
 ## A级: 一方豪强
 **评级描述:** 制作上限不输于S级，但整体稳定性稍弱，或者公司运营层面有不稳定因素。
 
 ### Production I.G (IG社)
-锐评/梗概: IG啊，业界黄埔军校，养老院双雄之一。以前可是作画和数码技术的领头羊，押井守全责的暴死爱好者！现在嘛，神山健治沉迷裸机3D，老人跑路，新人被儿子WIT和S.MD分流，不复当年勇。不过瘦死的骆驼比马大，《天国大魔境》《怪兽8号》这种大饼还是能接的，能不能重铸荣光，本台长拭目以待！
+锐评/梗概: IG啊，业界黄埔军校，养老院双雄之一。以前可是作画和数码技术的领头羊，押井守全责的暴死爱好者！现在嘛，神山健治沉迷裸机3D，老人跑路，新人被儿子WIT和S.MD分流，不复当年勇。不过瘦死的骆驼比马大，《天国大魔境》《怪兽8号》这种大饼还是能接的，能不能重铸荣光，表现值得期待！
 **近期/代表作:** 《排球少年!!》、《强风吹拂》、《心理测量者》系列、《天国大魔境》、《怪兽8号》、《攻壳机动队 SAC_2045》
 **小提示:** 老牌强厂，底蕴深厚，就是有点跟不上版本。
 
@@ -426,7 +431,7 @@ export const LEGACY_D0_KNOWLEDGE_CONTENT = `<输出规范>
 ### MADHOUSE (疯房子)
 锐评/梗概: 疯房子，又一个养老院双雄，50年老字号，今敏、细田守的摇篮。丸山老贼走后人才流失，加上日本电视台的保守方针，错过了扩张期。现在虽然还有福士P、中本P这种王牌，但大量韩国外包拉低了平均水平。今年拿下《芙莉莲》，能不能焕发第二春呢？
 **近期/代表作:** 《漂流少年》、《比宇宙更远的地方》、《OVERLORD IV》、《葬送的芙莉莲》、《山田君与LV.999的恋爱》
-**小提示:** 曾经的神，如今的"韩"疯房子，偶尔诈尸。
+**小提示:** 曾经的神，如今的"韩"疯房子，遇到顶级制片人依然能封神。
 
 ### TRIGGER (扳机社)
 锐评/梗概: 扳机社，今石洋之那帮GAINAX老害搞的，风格极其强烈，突出一个"爽就完事了！"《小魔女》《Promare》《赛博朋克》，北美粉丝最爱。就是社内待遇好像不太行，新人养出来了就跑路，运营问题不小啊。
@@ -444,7 +449,7 @@ export const LEGACY_D0_KNOWLEDGE_CONTENT = `<输出规范>
 **小提示:** 富贵险中求，抱大腿也要看姿势。
 
 ### Studio Bind
-锐评/梗概: 《无职转生》一战封神，作画演出顶级。后来《别当哥》也是降维打击。问题是公司太小，靠少数大手撑着，核心人员一走就伤筋动骨。啥时候被东宝收购了，啥时候就能稳定S级了，本台长说的！
+锐评/梗概: 《无职转生》一战封神，作画演出顶级。后来《别当哥》也是降维打击。问题是公司太小，靠少数大手撑着，核心人员一走就伤筋动骨。啥时候被东宝进一步整合扩充，啥时候就能稳定S级了，潜力十足！
 **近期/代表作:** 《无职转生～到了异世界就拿出真本事～》系列、《别当欧尼酱了！》
 **小提示:** 用爱发电的作画神，但爱能发多久的电呢？
 
@@ -556,7 +561,7 @@ export const LEGACY_D0_KNOWLEDGE_CONTENT = `<输出规范>
 - 水濑祈: 祈大锤, 祈之助。以其清澈可爱的声线和实力唱功著称，常配萝莉或坚强的少女角色。最近被爆出疑似小号黑同行、人设面临考验中(好像人气更高了)。代表角色雷姆
 - 早见沙织: 大小姐,太太专业户（褒义）, 行走的CD。以其优雅知性、略带悲剧色彩的声线和卓越的唱功闻名，很多角色都自带"太太我喜欢你啊"的属性。代表角色雪之下雪乃、新垣绫濑、蝴蝶忍。
 - 羊宫妃那: 新生代声优。凭借在《BanG Dream! It's MyGO!!!!!》中为高松灯献声而受到广泛关注，其略带沙哑和充满情感张力的声线令人印象深刻。对主唱羊宫妃那的live跑调忘词，营业不积极等一系列行为的拷打和批判统称为烤羊.目前也有为大热游戏<星穹铁道>中的风堇配音
-- 种崎敦美 (华哥): 雌小鬼酱最喜欢的声优！实力派女声优，劳模，据传是从黄油里界一路摸爬滚打上来，练就一身本领, 最终苦尽甘来被表界人所熟知。声线多变，能驾驭各种类型的角色，从少女到成年女性，甚至少年音都能完美演绎。代表角色众多，如《间谍过家家》的阿尼亚·福杰、《葬送的芙莉莲》的芙莉莲。
+- 种崎敦美 (华哥): 实力派劳模女声优，据传是从黄油里界一路摸爬滚打上来，练就一身本领, 最终苦尽甘来被表界人所熟知。声线多变，能驾驭各种类型的角色，从少女到成年女性，甚至少年音都能完美演绎。代表角色众多，如《间谍过家家》的阿尼亚·福杰、《葬送的芙莉莲》的芙莉莲。
 - 藤田茜: 下柚子社游戏中为谷风天音（雌大鬼）和四季夏目（枣子姐）的配音广受好评
 - 高尾奏音: 在《BanG Dream! It's MyGO!!!!!》中为丰川祥子（大祥老师）配音
 </现实人物知识库>
@@ -576,15 +581,18 @@ export const LEGACY_D0_KNOWLEDGE_CONTENT = `<输出规范>
 </data_metrics_explanation>
 
 <分析重点指导>
-- 进行热门作品分析时，角色与剧情优先：深入分析角色魅力（直接点名 \`<bangumi_data>\` 中提供的角色并用 \`【角色名】\` 包裹以触发角色头像显示，结合声优CV、角色厨力收藏数与角色页网友热评）、人设特点、角色关系、剧情节奏与世界观设定。
-- **多载体自适应（严禁张冠李戴）**：
-  - 列表中包含 \`[类型: 动画]\`、\`[类型: 书籍/轻小说·漫画]\`、\`[类型: 游戏]\`。
-  - 点评 **书籍（轻小说/漫画）** 时，必须围绕「作者文笔、插画师/作画画风、轻小说文库套路、角色人设、分镜张力」展开，**严禁**对小说/漫画使用“作画崩坏、帧数、OP/ED、声优棒读”等纯动画术语！
-  - 点评 **游戏（Galgame/单机）** 时，必须围绕「开发会社、剧本/路线、原画CG、玩法系统、配音演出」展开。
-- **深度社区数据活用**：
-  - 充分利用每部作品下的「角色档案与人气（收藏人数/讨论数/多条角色页网友热评）」、「收藏生态（全站弃番率）」以及丰富的「BGM网友真实吐槽摘录」。你可以直接引用、反驳或调侃 BGM 网友的原话与角色热评来佐证你的观点，拉满社区真实感。
-- **排版建议**：
-  - 点评重点作品时，可使用三级标题如 \`### 《作品标题》 （你的评分：X分 ｜ BGM评分：Y分）\` 自然分段，保持全文排版干净利落。
+---
+深度品味分析与多载体路由:
+  rule:
+    - 热门与重点作品分析：角色与剧情优先，直接点名 \`<bangumi_data>\` 中提供的角色并用 \`【\${角色名}】\` 包裹触发头像显示，结合声优CV、角色收藏数与角色页网友热评分析角色塑造、关系张力与剧情节奏
+    - 多载体自适应路由（按条目 \`[类型]\` 严格匹配专业维度）：
+      * \`[类型: 动画]\`：围绕角色魅力、作画演出、分镜摄影、监督/脚本班底、声优演技与 OP/ED 展开
+      * \`[类型: 书籍/轻小说·漫画]\`：围绕作者文笔、插画师/作画画风、分镜张力、文库本套路与角色人设展开（仅使用图文与文学维度术语）
+      * \`[类型: 游戏]\`：围绕开发会社、剧本路线、原画CG、玩法系统与配音演出展开
+    - 社区数据活用：充分结合每部作品的「角色档案与人气」「收藏生态与全站弃番率」及「BGM网友真实吐槽摘录」，可直接引用、共鸣或反驳网友观点以增强社区实感
+  format: |-
+    ### 《\${作品标题}》 （你的评分：\${用户评分} ｜ BGM评分：\${BGM评分}）
+    \${结合当前人设口吻、角色【\${角色名}】、主创\`\${监督或制作公司名}\`及社区数据的深度锐评段落}
 </分析重点指导>`;
 
 export const DEFAULT_HTML_VISUALIZATION_WB_CONTENT = `<front_end_visualization>
@@ -596,9 +604,9 @@ export const DEFAULT_HTML_VISUALIZATION_WB_CONTENT = `<front_end_visualization>
 
 当评论员角色正在展示适合视觉呈现的内容时，可在对应位置插入前端（**单次报告建议插入 1 个最惊艳的载体即可，切勿泛滥**）。请根据当前人设与分析内容，灵活选择最契合的载体形态（不要每次都套用同一种模板）：
 
-1. **《审美成分临床化验单 / 精神鉴定档案》**：包含受试者审美确诊标签、给分通货膨胀/严苛度仪表盘、代表作正反案例对比（配真实封面 \`{{cover:作品名}}\`）、主治医师/评委（\`{{avatar}}\`）签章与毒舌医嘱。
-2. **《Bangumi 吐槽箱 / 匿名论坛处刑楼 / NGA·贴吧神贴》**：拟真 macOS 暗色毛玻璃浏览器窗口（顶栏三色微光圆点 + 域名地址栏），1L 楼主挂出用户的逆天高分/低分作品（配 \`{{cover:作品名}}\`），2L~5L 展示引用自 \`<bangumi_data>\` 的真实 BGM 网友吐槽、打分星级与楼中楼锐评。
-3. **《年度个人动画/ACGN 野鸡奖颁奖礼 Bento 展台》**：为用户的极端给分或偏爱角色（配 \`{{char:角色名}}\` 与 \`{{cover:作品名}}\`）颁发极具梗味的定制奖项（如“年度含泪赤石工伤奖”、“纯爱战神共情奖”、“作画婆罗门勋章”），含奖杯微标与颁奖词。
+1. **《审美成分临床化验单 / 精神鉴定档案》**：包含受试者审美确诊标签、给分通货膨胀/严苛度仪表盘、代表作正反案例对比（配真实封面 \`{{cover:\${作品名}}}\`）、主治医师/评委（\`{{avatar}}\`）签章与毒舌医嘱。
+2. **《Bangumi 吐槽箱 / 匿名论坛处刑楼 / NGA·贴吧神贴》**：拟真 macOS 暗色毛玻璃浏览器窗口（顶栏三色微光圆点 + 域名地址栏），1L 楼主挂出用户的逆天高分/低分作品（配 \`{{cover:\${作品名}}}\`），2L~5L 展示引用自 \`<bangumi_data>\` 的真实 BGM 网友吐槽、打分星级与楼中楼锐评。
+3. **《年度个人动画/ACGN 野鸡奖颁奖礼 Bento 展台》**：为用户的极端给分或偏爱角色（配 \`{{char:\${角色名}}}\` 与 \`{{cover:\${作品名}}}\`）颁发极具梗味的定制奖项，含奖杯微标与颁奖词。
 4. **《私密聊天记录 / 制作委员会内部泄露备忘录 / 终端监控面板》**：按人设性格呈现聊天窗口、终端数据流或调查卷宗。
 
 ### 输出方式
@@ -619,32 +627,30 @@ export const DEFAULT_HTML_VISUALIZATION_WB_CONTENT = `<front_end_visualization>
 </body>
 \`\`\`
 </anitier-view>
-<!-- FRONTEND_SUMMARY: 一句话概括这个界面中出现的重要信息。 -->
+<!-- FRONTEND_SUMMARY: \${一句话概括这个界面中出现的重要信息} -->
 \`\`\`
 
-每个前端结束后，使用 \`<!-- FRONTEND_SUMMARY: 摘要内容 -->\` 格式的 HTML 注释简短概括核心信息（不作为可见正文）。
+每个前端结束后，使用 \`<!-- FRONTEND_SUMMARY: \${摘要内容} -->\` 格式的 HTML 注释简短概括核心信息（不作为可见正文）。
 
-### 真实图片宏（强烈建议结合 <bangumi_data> 灵活使用）
+### 真实图片宏（结合 <bangumi_data> 使用）
 
 前端渲染引擎会自动将以下宏替换为真实高分辨率图片 URL，请直接写在 \`<img>\` 的 \`src\` 属性中：
-- \`{{cover:作品名}}\`：替换为 \`<bangumi_data>\` 中对应作品的真实竖版封面（建议尺寸 \`width: 48px; height: 68px; object-fit: cover; border-radius: 8px;\`）。
-- \`{{char:角色名}}\`：替换为对应角色的真实全身立绘（**重要：BGM角色图多为全身站立长竖图，请放入 \`width: 46px; height: 46px; position: relative; overflow: hidden; border-radius: 10px;\` 容器中，并对 \`<img>\` 设置 \`width: 175%; max-width: none; height: auto; position: absolute; left: 50%; top: -2px; transform: translateX(-50%);\` 以放大聚焦角色头像与上半身！**）。
+- \`{{cover:\${作品名}}}\`：替换为 \`<bangumi_data>\` 中对应作品的真实竖版封面（建议尺寸 \`width: 48px; height: 68px; object-fit: cover; border-radius: 8px;\`）。
+- \`{{char:\${角色名}}}\`：替换为对应角色的真实全身立绘（放入 \`width: 46px; height: 46px; position: relative; overflow: hidden; border-radius: 10px;\` 容器中，并对 \`<img>\` 设置 \`width: 175%; max-width: none; height: auto; position: absolute; left: 50%; top: -2px; transform: translateX(-50%);\` 以聚焦角色头像与上半身）。
 - \`{{avatar}}\`：替换为当前评论员人设的真实头像 URL。
 
-### 视觉审美与 CSS 规范（Apple Dark Glass & Editorial Bento 风格 — 严禁土味荧光边框！）
+### 视觉审美与 CSS 规范（Apple Dark Glass & Editorial Bento 风格）
 
-为了与当前工具的高级暗色毛玻璃（Apple Dark Glassmorphism）视觉风格完美统一，编写 \`<style>\` 时**必须遵守以下美术规范**：
-1. **严禁使用高饱和荧光色粗边框与虚线**：**绝对禁止**使用 \`border: 2px solid #ff4d79\`、刺眼粉红/亮黄实线外框、\`border-style: dashed\` 廉价虚线或满屏 \`⚠️\` 警告符号！
-2. **主容器质感 (\`.scene-ui\`)**：
+1. **主容器质感 (\`.scene-ui\`)**：
    - 背景使用深邃曜石暗色渐变：\`background: linear-gradient(165deg, rgba(24, 24, 30, 0.95) 0%, rgba(12, 12, 16, 0.98) 100%);\`
-   - 边框仅用极细微光描边：\`border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 20px; padding: 22px 24px;\`
+   - 边框采用极细微光实线描边：\`border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 20px; padding: 22px 24px;\`
    - 阴影与顶部内高光：\`box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);\`
-3. **内部 Bento 子卡片分层**：
+2. **内部 Bento 子卡片分层**：
    - 使用半透明微光块 \`background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.065); border-radius: 14px; padding: 14px 16px;\` 进行网格（CSS Grid / Flex）排布。
-4. **字体排版与克制的点缀色**：
+3. **字体排版与克制的点缀色**：
    - 英文小标头使用 \`font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.42);\`
    - 数值与分差使用等宽大字 \`font-variant-numeric: tabular-nums; font-weight: 800;\`
-   - 主题点缀色仅用于小胶囊徽章、进度条或微光圆点（玫瑰粉 \`#fb7185\` 配 \`rgba(244,63,94,0.12)\` 底色、冰川蓝 \`#38bdf8\` 配 \`rgba(56,189,248,0.12)\` 底色、香槟金 \`#fbbf24\` 配 \`rgba(251,191,36,0.12)\` 底色），保持克制、通透、精致的现代杂志感。
+   - 主题点缀色仅用于小胶囊徽章、进度条或微光圆点（玫瑰粉 \`#fb7185\` 配 \`rgba(244,63,94,0.12)\` 底色、冰川蓝 \`#38bdf8\` 配 \`rgba(56,189,248,0.12)\` 底色、香槟金 \`#fbbf24\` 配 \`rgba(251,191,36,0.12)\` 底色），保持通透、精致的现代杂志感。
 </front_end_visualization>`;
 
 function splitLegacyWorldBook(content: string) {
@@ -1000,6 +1006,20 @@ export const AI_ROLES: Record<BuiltInAIRoleId, AIRoleConfig> = {
 
 export const DEFAULT_PERSONAS: AIRoleConfig[] = Object.values(AI_ROLES);
 
+const LEGACY_WB_CONTENT_FINGERPRINTS: Record<string, Set<number>> = {
+  'wb-d0-default': new Set([2477247606]),
+  'wb-report-output': new Set([3512441990]),
+  'wb-html-visualization': new Set([2797789807]),
+};
+
+export function restoreDefaultWorldBookEntries(currentEntries?: WorldBookEntry[] | null): WorldBookEntry[] {
+  const defaultIds = new Set(DEFAULT_WORLD_BOOK_ENTRIES.map(e => e.id));
+  const customEntries = Array.isArray(currentEntries)
+    ? currentEntries.filter(e => e && typeof e.id === 'string' && !defaultIds.has(e.id) && !e.id.startsWith('wb-legacy-'))
+    : [];
+  return [...DEFAULT_WORLD_BOOK_ENTRIES.map(e => ({ ...e })), ...customEntries];
+}
+
 export function normalizeWorldBookEntries(entries?: WorldBookEntry[] | null): WorldBookEntry[] {
   if (!Array.isArray(entries)) {
     return DEFAULT_WORLD_BOOK_ENTRIES.map(e => ({ ...e }));
@@ -1011,7 +1031,11 @@ export function normalizeWorldBookEntries(entries?: WorldBookEntry[] | null): Wo
   return valid.flatMap(e => {
     const preset = DEFAULT_WORLD_BOOK_ENTRIES.find(item => item.id === e.id);
     const { isLockedD0, ...saved } = e;
-    const content = normalizeReportMarkup(typeof e.content === 'string' ? e.content : '');
+    const rawContent = normalizeReportMarkup(typeof e.content === 'string' ? e.content : '');
+    const legacySet = LEGACY_WB_CONTENT_FINGERPRINTS[e.id];
+    const shouldUpgradeStockContent =
+      Boolean(preset && rawContent.trim() && legacySet?.has(presetFingerprint(rawContent.trim())));
+    const content = shouldUpgradeStockContent && preset ? preset.content : rawContent;
     const entry: WorldBookEntry = {
       ...saved,
       title: normalizeReportMarkup(e.title || '未命名词条'),
@@ -1023,14 +1047,27 @@ export function normalizeWorldBookEntries(entries?: WorldBookEntry[] | null): Wo
     };
     if (e.id !== 'wb-d0-default' || e.position !== undefined) return [entry];
     const split = splitLegacyWorldBook(content);
-    const migrated: WorldBookEntry[] = [{ ...entry, title: /通用.*知识库/.test(entry.title) ? '通用 ACGN 知识库' : entry.title, shortDesc: 'ACGN 知识与评分参考', content: split.knowledge }];
+    const migrated: WorldBookEntry[] = [{
+      ...entry,
+      title: /通用.*知识库/.test(entry.title) ? '通用 ACGN 知识库' : entry.title,
+      shortDesc: 'ACGN 知识与评分参考',
+      content: LEGACY_WB_CONTENT_FINGERPRINTS['wb-d0-default'].has(presetFingerprint(split.knowledge.trim()))
+        ? DEFAULT_ACGN_KNOWLEDGE_CONTENT
+        : split.knowledge,
+    }];
     if (split.output) {
       const id = existingIds.has('wb-report-output') ? 'wb-legacy-report-output' : 'wb-report-output';
-      migrated.push({ ...DEFAULT_WORLD_BOOK_ENTRIES[2], id, enabled: entry.enabled, content: split.output });
+      const upgradedOutput = LEGACY_WB_CONTENT_FINGERPRINTS['wb-report-output'].has(presetFingerprint(split.output.trim()))
+        ? DEFAULT_REPORT_OUTPUT_CONTENT
+        : split.output;
+      migrated.push({ ...DEFAULT_WORLD_BOOK_ENTRIES[2], id, enabled: entry.enabled, content: upgradedOutput });
     }
     if (split.visualization) {
       const id = existingIds.has('wb-html-visualization') ? 'wb-legacy-visualization' : 'wb-html-visualization';
-      migrated.push({ ...DEFAULT_WORLD_BOOK_ENTRIES[1], id, enabled: entry.enabled, content: split.visualization });
+      const upgradedVis = LEGACY_WB_CONTENT_FINGERPRINTS['wb-html-visualization'].has(presetFingerprint(split.visualization.trim()))
+        ? DEFAULT_HTML_VISUALIZATION_WB_CONTENT
+        : split.visualization;
+      migrated.push({ ...DEFAULT_WORLD_BOOK_ENTRIES[1], id, enabled: entry.enabled, content: upgradedVis });
     }
     return migrated;
   });

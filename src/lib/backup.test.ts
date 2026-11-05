@@ -85,3 +85,21 @@ test('restart adopts newer server values only for fields unchanged locally', () 
   assert.deepEqual(conflict.recovered, {});
   assert.throws(() => mergeStoragePatch({ title: 'remote edit' }, conflict.expected, { title: 'local edit' }));
 });
+
+test('createBackup with includeCredentials: false strips API Key and BGM Token while preserving finaleImages', () => {
+  const inputWithSecrets = fieldsToStorage({
+    ...board,
+    aiConfig: { baseUrl: 'https://api.example.com', apiKey: 'sk-secret-key-123', model: 'gpt-4o', worldBookEntries: [] },
+    bgmSyncConfig: { token: 'bgm-secret-token-456', username: 'user1', nickname: 'User One' },
+  });
+  const sanitized = createBackup(inputWithSecrets, { includeCredentials: false });
+  assert.equal((sanitized.aiConfig as Record<string, unknown>).apiKey, '');
+  assert.equal((sanitized.aiConfig as Record<string, unknown>).baseUrl, 'https://api.example.com');
+  assert.equal((sanitized.bgmSyncConfig as Record<string, unknown>).token, '');
+  assert.equal((sanitized.bgmSyncConfig as Record<string, unknown>).nickname, 'User One');
+
+  sanitized.studio.bookends.finaleImages = [work.cover];
+  const restored = parseBackup(JSON.parse(JSON.stringify(sanitized)));
+  assert.deepEqual(JSON.parse(restored[STUDIO_STORAGE_KEYS.BOOKENDS]).finaleImages, [work.cover]);
+});
+

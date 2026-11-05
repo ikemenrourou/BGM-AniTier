@@ -39,6 +39,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Music,
+  Download,
 } from 'lucide-react';
 import type {
   AIConfig,
@@ -54,10 +55,12 @@ import type {
 import {
   ALL_TIER_SCORES,
   DEFAULT_VISIBLE_TIERS,
+  DEFAULT_WORLD_BOOK_ENTRIES,
   LETTER_DEFAULT_VISIBLE_TIERS,
   formatTierBadgeText,
   formatTierLabel,
   normalizeWorldBookEntries,
+  restoreDefaultWorldBookEntries,
 } from '../lib/tierLogic';
 import {
   BLUE_ARCHIVE_EMOTE_META,
@@ -108,6 +111,11 @@ import { StudioEntrance, type StudioEntrancePhase } from './StudioEntrance';
 import { StudioBookendEditor } from './StudioBookendEditor';
 import { StudioSceneImage } from './StudioSceneImage';
 import { StudioDialogueBubble } from './StudioDialogueBubble';
+import { StudioScrapbookModal } from './StudioScrapbookModal';
+import {
+  buildCharacterCardPngBlob,
+  parseCharacterCardImportBytes,
+} from '../lib/characterCardPng';
 import { DEFAULT_STUDIO_SPEECH_SPEED, STUDIO_SPEECH_SPEEDS, normalizeStudioSpeechSpeed, getStudioCharacterDelay, getStudioTurnDelay } from '../lib/studioSpeech';
 import { compressImageFileToDataUrl, fetchBangumiDeepSubjectData } from '../lib/bangumiApi';
 
@@ -843,7 +851,15 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
 
   const [showStageVisualPopover, setShowStageVisualPopover] = useState<boolean>(false);
   const [showFinaleOverview, setShowFinaleOverview] = useState<boolean>(false);
-  const [finaleOverviewLayout, setFinaleOverviewLayout] = useState<'split' | 'tierlist' | 'posterwall'>('split');
+  const [isScrapbookModalOpen, setIsScrapbookModalOpen] = useState<boolean>(false);
+  const [charaCardStatus, setCharaCardStatus] = useState<string | null>(null);
+  const hasFinaleImages = Boolean(bookends.finaleImages && bookends.finaleImages.length > 0);
+
+  useEffect(() => {
+    if (!hasFinaleImages && showFinaleOverview) {
+      setShowFinaleOverview(false);
+    }
+  }, [hasFinaleImages, showFinaleOverview]);
 
   const [speechSpeed, setSpeechSpeed] = useState(() => {
     try {
@@ -1249,6 +1265,13 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
   useEffect(() => {
     if (studioMode !== 'stage' || !isAutoPlaying || !isTypingComplete || (isEntryPending && !canContinueDuringEntry)) return;
     if (currentStepIndex >= playbackSteps.length - 1) {
+      if (hasFinaleImages && !showFinaleOverview) {
+        const finaleTimer = setTimeout(() => {
+          setShowFinaleOverview(true);
+          setIsAutoPlaying(false);
+        }, Math.round(1400 / speechSpeed));
+        return () => clearTimeout(finaleTimer);
+      }
       setIsAutoPlaying(false);
       return;
     }
@@ -1265,7 +1288,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
     }, delayMs);
 
     return () => clearTimeout(timer);
-  }, [studioMode, isAutoPlaying, isTypingComplete, isEntryPending, canContinueDuringEntry, currentStep, activeTypingFullText, currentStepIndex, playbackSteps, speechSpeed]);
+  }, [studioMode, isAutoPlaying, isTypingComplete, isEntryPending, canContinueDuringEntry, currentStep, activeTypingFullText, currentStepIndex, playbackSteps, speechSpeed, hasFinaleImages, showFinaleOverview]);
 
   // Step Forward / Backward Handlers
   const handleStepForward = useCallback(() => {
@@ -1282,11 +1305,13 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
     }
     if (isEntryPending && !canContinueDuringEntry) return;
     if (currentStepIndex >= playbackSteps.length - 1) {
-      setShowFinaleOverview(true);
+      if (hasFinaleImages) {
+        setShowFinaleOverview(true);
+      }
       return;
     }
     setCurrentStepIndex(prev => Math.min(playbackSteps.length - 1, prev + 1));
-  }, [currentStep, isTypingComplete, isEntryPending, canContinueDuringEntry, typedCharCount, activeTypingFullText.length, playbackSteps.length, currentStepIndex, showFinaleOverview]);
+  }, [currentStep, isTypingComplete, isEntryPending, canContinueDuringEntry, typedCharCount, activeTypingFullText.length, playbackSteps.length, currentStepIndex, showFinaleOverview, hasFinaleImages, setTypedCharCount]);
 
   const handleStepBackward = useCallback(() => {
     setIsAutoPlaying(false);
@@ -1454,6 +1479,77 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
         e => e.id !== exprId,
       ),
     });
+  };
+
+  const handleExportCharacterCardPng = async () => {
+    try {
+      setCharaCardStatus('正在生成 PNG 角色卡...');
+      const blob = await buildCharacterCardPngBlob({
+        role: editingTargetRole,
+        character: editingCharacter,
+        worldBookEntries: editingTargetRole === 'ai' ? enabledStudioWorldBooks : [],
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${(editingCharacter.name || 'character').replace(/[\\/:*?"<>|]/g, '_')}-小剧场角色卡.png`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setCharaCardStatus(`已导出「${editingCharacter.name}」PNG 角色卡（内嵌人设、差分与世界书）`);
+      setTimeout(() => setCharaCardStatus(null), 3500);
+    } catch (err) {
+      setCharaCardStatus(err instanceof Error ? err.message : '导出角色卡失败');
+      setTimeout(() => setCharaCardStatus(null), 3500);
+    }
+  };
+
+  const handleImportCharacterCardFile = async (file: File) => {
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const payload = parseCharacterCardImportBytes(bytes);
+      const importedChar = payload.character;
+
+      if (payload.role === 'user' || editingTargetRole === 'user') {
+        setUserChar(normalizeStudioUserCharacter({ ...importedChar, id: 'studio-host' }));
+        setEditingTargetRole('user');
+      } else {
+        const targetId =
+          importedChar.id && importedChar.id !== 'studio-host'
+            ? importedChar.id
+            : `studio-custom-${Date.now()}`;
+        const normalizedComp: StudioCharacterConfig = {
+          ...importedChar,
+          id: targetId,
+          isCustom: targetId !== 'studio-feiyu',
+        };
+        setCompanions(prev => {
+          const exists = prev.some(c => c.id === targetId);
+          return exists
+            ? prev.map(c => (c.id === targetId ? normalizedComp : c))
+            : [...prev, normalizedComp];
+        });
+        setSelectedCompanionId(targetId);
+        setEditingTargetRole('ai');
+      }
+
+      if (Array.isArray(payload.worldBookEntries) && payload.worldBookEntries.length > 0) {
+        const existingIds = new Set(worldBookEntries.map(w => w.id));
+        const newEntries = payload.worldBookEntries.filter(w => w && w.id && !existingIds.has(w.id));
+        if (newEntries.length > 0) {
+          updateSharedAiConfig({
+            worldBookEntries: normalizeWorldBookEntries([...worldBookEntries, ...newEntries]),
+          });
+        }
+      }
+
+      setCharaCardStatus(
+        `已导入角色卡「${importedChar.name}」（含 ${importedChar.customExpressions?.length || 0} 个表情差分）`,
+      );
+      setTimeout(() => setCharaCardStatus(null), 4000);
+    } catch (err) {
+      setCharaCardStatus(err instanceof Error ? err.message : '角色卡解析失败');
+      setTimeout(() => setCharaCardStatus(null), 4000);
+    }
   };
 
   // Script Workbench Handlers
@@ -1824,7 +1920,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/[0.1] text-xs font-semibold text-white transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>返回排榜主页</span>
+                <span>返回主页</span>
               </button>
 
               <div className="inline-flex items-center rounded-full bg-white/[0.06] border border-white/[0.1] p-0.5">
@@ -1838,7 +1934,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                   className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold text-white/75 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  <span>1. 台本与角色设置 ({scriptItems.length}部)</span>
+                  <span>1. 台本与设置 ({scriptItems.length}部)</span>
                 </button>
                 <button
                   type="button"
@@ -1846,13 +1942,27 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                   className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white text-zinc-950 text-xs font-bold shadow-xs cursor-pointer"
                 >
                   <Film className="w-3.5 h-3.5" />
-                  <span>2. 16:9 录屏演播舞台</span>
+                  <span>2. 演播舞台</span>
                 </button>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {/* Secondary Draggable Slider Popover for Standee Scale & Bubble Font Size */}
+              <button
+                type="button"
+                data-testid="studio-open-scrapbook-btn"
+                onClick={() => {
+                  setIsAutoPlaying(false);
+                  setIsScrapbookModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 hover:bg-amber-400/30 border border-amber-300/40 text-[11px] font-bold text-amber-200 transition-colors cursor-pointer"
+                title="精选小剧场对话并导出多张手账贴纸风社交分享图"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>手账卡片导出</span>
+              </button>
+
+              {/* Secondary Draggable Slider Popover for Standee Scale, Bubble Font Size & Blind Pool */}
               <div className="relative">
                 <button
                   type="button"
@@ -1866,7 +1976,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
                   <span>
-                    立绘 {standeeScale.toFixed(2)}x · 字号 {bubbleFontSize}px
+                    舞台外观 ({standeeScale.toFixed(2)}x · {bubbleFontSize}px)
                   </span>
                 </button>
 
@@ -1924,32 +2034,26 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                         className="w-full accent-white cursor-pointer"
                       />
                     </div>
+
+                    <div className="pt-2 border-t border-white/10">
+                      <button
+                        type="button"
+                        data-testid="studio-toggle-pool-blind-btn"
+                        onClick={() => setIsPoolBlindBox(prev => !prev)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs text-white cursor-pointer"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          {isPoolBlindBox ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span>右下角候选池</span>
+                        </span>
+                        <span className="font-bold text-white/90">
+                          {isPoolBlindBox ? '盲盒模糊' : '明牌展示'}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
-
-              <button
-                type="button"
-                data-testid="studio-toggle-pool-blind-btn"
-                onClick={() => setIsPoolBlindBox(prev => !prev)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-medium transition-colors cursor-pointer ${
-                  isPoolBlindBox
-                    ? 'bg-white text-zinc-950 border-white font-semibold'
-                    : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/[0.1] text-white/85'
-                }`}
-              >
-                {isPoolBlindBox ? (
-                  <>
-                    <EyeOff className="w-3.5 h-3.5" />
-                    <span>候选池: 盲盒模糊</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>候选池: 明牌展示</span>
-                  </>
-                )}
-              </button>
 
               <button
                 type="button"
@@ -1986,7 +2090,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                 title="开启或关闭作品落榜提示音（高分/普通/低分区分）与漫符弹出音效"
               >
                 <Music className="w-3.5 h-3.5" />
-                <span>{isSfxMuted ? '舞台音效静音' : '舞台音效开启'}</span>
+                <span>{isSfxMuted ? '音效静音' : '音效开启'}</span>
               </button>
 
               <button
@@ -2003,166 +2107,43 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
           </header>
         )}
 
-        {showFinaleOverview ? (
+        {/* Blurred-Stage Centered Finale Overview Image Overlay (Matches Figure 1 Screenshot) */}
+        {showFinaleOverview && hasFinaleImages && (
           <div
             data-testid="studio-finale-overview-stage"
-            className="flex-1 min-h-0 w-full flex flex-col px-6 py-4 gap-3 overflow-hidden"
+            onClick={() => setShowFinaleOverview(false)}
+            className="fixed inset-0 z-30 bg-black/55 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-fade-in"
           >
-            {/* Finale Showcase Header & View Mode Switcher */}
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-black/45 border border-white/[0.1] backdrop-blur-xl shrink-0">
-              <div className="flex items-center gap-3">
-                <span className="px-2.5 py-0.5 rounded-full bg-white text-zinc-950 text-[10px] font-black tracking-widest uppercase">
-                  FINALE SHOWCASE
-                </span>
-                <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
-                  {boardTitle} · 全榜总览与视觉海报墙（共 {orderedScriptItems.length} 部）
-                </h2>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center rounded-full bg-white/[0.06] border border-white/[0.1] p-0.5 text-xs">
-                  <button
-                    type="button"
-                    data-testid="studio-finale-layout-split"
-                    onClick={() => setFinaleOverviewLayout('split')}
-                    className={`px-3 py-1 rounded-full font-bold transition-colors cursor-pointer ${
-                      finaleOverviewLayout === 'split'
-                        ? 'bg-white text-zinc-950'
-                        : 'text-white/70 hover:text-white'
-                    }`}
-                  >
-                    同屏双拼：全榜 + 海报墙
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="studio-finale-layout-tierlist"
-                    onClick={() => setFinaleOverviewLayout('tierlist')}
-                    className={`px-3 py-1 rounded-full font-bold transition-colors cursor-pointer ${
-                      finaleOverviewLayout === 'tierlist'
-                        ? 'bg-white text-zinc-950'
-                        : 'text-white/70 hover:text-white'
-                    }`}
-                  >
-                    全屏完整 Tier 榜
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="studio-finale-layout-posterwall"
-                    onClick={() => setFinaleOverviewLayout('posterwall')}
-                    className={`px-3 py-1 rounded-full font-bold transition-colors cursor-pointer ${
-                      finaleOverviewLayout === 'posterwall'
-                        ? 'bg-white text-zinc-950'
-                        : 'text-white/70 hover:text-white'
-                    }`}
-                  >
-                    全屏海报墙
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowFinaleOverview(false)}
-                  className="px-3 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.16] border border-white/[0.14] text-xs font-semibold text-white cursor-pointer"
-                >
-                  返回演播舞台
-                </button>
-              </div>
-            </div>
-
-            {/* Finale Dual / Full Panels */}
-            <div className="flex-1 min-h-0 grid grid-cols-12 gap-4 overflow-hidden">
-              {(finaleOverviewLayout === 'split' || finaleOverviewLayout === 'tierlist') && (
-                <section
-                  data-testid="studio-finale-tierlist-panel"
-                  className={`${
-                    finaleOverviewLayout === 'split' ? 'col-span-6' : 'col-span-12'
-                  } h-full min-h-0 rounded-[24px] bg-[#0a0b10]/85 border border-white/[0.09] p-4 flex flex-col overflow-hidden`}
-                >
-                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.07] shrink-0">
-                    <div>
-                      <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/40">
-                        COMPLETE TIER LIST ARCHIVE
-                      </p>
-                      <h3 className="text-base font-black text-white">{boardTitle}</h3>
-                    </div>
-                    <span className="text-[11px] font-mono text-white/45">
-                      github.com/ikemenrourou/BGM-AniTier
-                    </span>
-                  </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-3 pr-1">
-                    {stageVisibleTiers
-                      .filter(score => (tiers[String(score)] || []).length > 0)
-                      .map(score => (
-                        <TierRow
-                          key={`finale-tier-${score}`}
-                          score={score}
-                          gradingSystem={gradingSystem}
-                          items={tiers[String(score)] || []}
-                          showTitles={showTitles}
-                          tierRowStyle={tierRowStyle}
-                          tierRowOpacity={tierRowOpacity}
-                          highlightedTag={null}
-                          commentedAnimeIds={new Set()}
-                          readOnlyStage={true}
-                          onAddClick={() => {}}
-                          onSelectAnimeDetail={() => {}}
-                          onOpenCommentModal={() => {}}
-                          onRemoveAnime={() => {}}
-                          onMoveAnime={() => {}}
-                        />
-                      ))}
-                  </div>
-                </section>
-              )}
-
-              {(finaleOverviewLayout === 'split' || finaleOverviewLayout === 'posterwall') && (
-                <section
-                  data-testid="studio-finale-posterwall-panel"
-                  className={`${
-                    finaleOverviewLayout === 'split' ? 'col-span-6' : 'col-span-12'
-                  } h-full min-h-0 rounded-[24px] bg-[#0a0b10]/85 border border-white/[0.09] p-4 flex flex-col overflow-hidden`}
-                >
-                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.07] shrink-0">
-                    <div>
-                      <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/40">
-                        VISUAL POSTER WALL COLLAGE
-                      </p>
-                      <h3 className="text-base font-black text-white">视觉档案海报墙</h3>
-                    </div>
-                    <span className="text-[11px] font-mono text-white/45">
-                      TOTAL {orderedScriptItems.length} WORKS
-                    </span>
-                  </div>
-                  <div
-                    className={`flex-1 min-h-0 overflow-y-auto no-scrollbar grid ${
-                      finaleOverviewLayout === 'split'
-                        ? 'grid-cols-2 xl:grid-cols-3'
-                        : 'grid-cols-3 lg:grid-cols-5 xl:grid-cols-6'
-                    } gap-3 content-start pr-1`}
-                  >
-                    {[...orderedScriptItems]
-                      .sort((a, b) => b.targetScore - a.targetScore)
-                      .map(item => (
-                        <TopRightMetaSpotlightCard
-                          key={`finale-poster-${item.animeId}`}
-                          work={item}
-                          scoreRevealed={true}
-                          styleVariant={getWorkRandomMetaStyle(item.animeId)}
-                          gradingSystem={gradingSystem}
-                        />
-                      ))}
-                  </div>
-                </section>
-              )}
+            <div
+              className="relative max-w-[94vw] max-h-[88vh] flex items-center justify-center gap-6"
+              onClick={e => e.stopPropagation()}
+            >
+              {(bookends.finaleImages || []).map((imgSrc, idx) => (
+                <img
+                  key={idx}
+                  src={imgSrc}
+                  alt={`终局总览长图 ${idx + 1}`}
+                  data-testid={`studio-finale-overview-img-${idx}`}
+                  className="max-h-[86vh] max-w-full w-auto object-contain rounded-2xl shadow-[0_28px_90px_rgba(0,0,0,0.92)] border border-white/15"
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setShowFinaleOverview(false)}
+                className="absolute -top-3 -right-3 px-3 py-1 rounded-full bg-zinc-950/90 hover:bg-white hover:text-zinc-950 border border-white/25 text-xs font-bold text-white shadow-xl cursor-pointer transition-colors"
+              >
+                返回舞台
+              </button>
             </div>
           </div>
-        ) : (
-        /* ====================================================================
+        )}
+
+        {/* ====================================================================
             MAIN 16:9 THREE-COLUMN STAGE (Matches User's Sketch & Standee Layout)
             Left: Free-Standing Character Standees (立绘) + Hand-Drawn Boiling Bubble (手绘+手账风沸腾线条气泡框)
             Center: Top/Bottom Masked Auto-Camera Tier List + Fly-In & Active Card Spotlight
             Right: Top-Right Poster-Wall-Style Meta Card + Compact Candidate Pool
-           ==================================================================== */
+           ==================================================================== */}
         <div className="flex-1 min-h-0 w-full grid grid-cols-12 gap-4 px-5 py-3 overflow-hidden">
           {/* ==================================================================
               LEFT COLUMN (col-span-3): FREE-STANDING STANDEES + HAND-DRAWN BUBBLES
@@ -2444,7 +2425,6 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
             </div>
           </aside>
         </div>
-        )}
         {/* ====================================================================
             BOTTOM DIRECTOR PLAYBACK BAR (Supports Pause, Step ←, Step →, Auto-Play, Timeline Scrub)
            ==================================================================== */}
@@ -2613,22 +2593,24 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                 {playbackSteps.some(step => step.phase === 'finale') && (
                   <button type="button" data-testid="studio-timeline-ending" onClick={() => { setIsAutoPlaying(false); setShowFinaleOverview(false); setCurrentStepIndex(playbackSteps.findIndex(step => step.phase === 'finale')); }} className={`px-3 py-1 rounded-full text-[11px] shrink-0 border cursor-pointer ${!showFinaleOverview && currentStep?.phase === 'finale' ? 'bg-white text-zinc-950 border-white' : 'border-white/15 text-white/60'}`}>收尾</button>
                 )}
-                <button
-                  type="button"
-                  data-testid="studio-timeline-finale-overview"
-                  onClick={() => {
-                    setIsAutoPlaying(false);
-                    setShowFinaleOverview(prev => !prev);
-                  }}
-                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] shrink-0 border font-semibold cursor-pointer transition-colors ${
-                    showFinaleOverview
-                      ? 'bg-white text-zinc-950 border-white font-bold shadow-sm'
-                      : 'bg-white/[0.06] border-white/20 text-white/85 hover:bg-white/[0.14]'
-                  }`}
-                >
-                  <LayoutGrid className="w-3 h-3" />
-                  <span>终局总览：全榜 + 海报墙</span>
-                </button>
+                {hasFinaleImages && (
+                  <button
+                    type="button"
+                    data-testid="studio-timeline-finale-overview"
+                    onClick={() => {
+                      setIsAutoPlaying(false);
+                      setShowFinaleOverview(prev => !prev);
+                    }}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] shrink-0 border font-semibold cursor-pointer transition-colors ${
+                      showFinaleOverview
+                        ? 'bg-white text-zinc-950 border-white font-bold shadow-sm'
+                        : 'bg-white/[0.06] border-white/20 text-white/85 hover:bg-white/[0.14]'
+                    }`}
+                  >
+                    <LayoutGrid className="w-3 h-3" />
+                    <span>终局总览图</span>
+                  </button>
+                )}
               </div>
 
               <button
@@ -2648,7 +2630,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
             <div className="flex items-center gap-3 shrink-0 text-[11px] font-mono text-white/55">
               <span>
                 {showFinaleOverview ? (
-                  <strong className="text-white">终局全景展示</strong>
+                  <strong className="text-white">终局总览图展示</strong>
                 ) : (
                   <>
                     步骤{' '}
@@ -2680,6 +2662,15 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
             onPhaseChange={handleEntrancePhase}
           />
         )}
+        <StudioScrapbookModal
+          isOpen={isScrapbookModalOpen}
+          onClose={() => setIsScrapbookModalOpen(false)}
+          boardTitle={boardTitle}
+          entries={orderedScriptItems}
+          gradingSystem={gradingSystem}
+          userPersona={userChar}
+          companionPersona={activeCompanion}
+        />
       </div>
     );
   }
@@ -2701,7 +2692,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-xs font-semibold text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>返回排榜主页</span>
+            <span>返回主页</span>
           </button>
 
           <div className="inline-flex items-center rounded-full bg-white/[0.06] border border-white/[0.1] p-1">
@@ -2710,7 +2701,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
               className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-zinc-950 text-xs font-bold shadow-xs cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>1. 台本与角色设置 ({scriptItems.length}部)</span>
+              <span>1. 台本与设置 ({scriptItems.length}部)</span>
             </button>
             <button
               type="button"
@@ -2719,7 +2710,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
               className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold text-white/75 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
             >
               <Film className="w-3.5 h-3.5" />
-              <span>2. 进入 16:9 录屏演播舞台</span>
+              <span>2. 演播舞台</span>
             </button>
           </div>
         </div>
@@ -2730,6 +2721,16 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
               {isLoadingContext ? contextStatus || '正在补充 Bangumi 资料…' : generationStatus}
             </span>
           )}
+
+          <button
+            type="button"
+            data-testid="studio-prep-open-scrapbook-btn"
+            onClick={() => setIsScrapbookModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400/20 hover:bg-amber-400/30 border border-amber-300/40 text-amber-200 text-xs font-bold transition-colors cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>手账卡片导出</span>
+          </button>
 
           <button
             type="button"
@@ -2761,7 +2762,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.14] text-white text-xs font-bold transition-colors cursor-pointer"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            <span>开始 16:9 录屏演播</span>
+            <span>进入演播舞台</span>
           </button>
         </div>
       </header>
@@ -2919,6 +2920,29 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                     </span>
                     <button
                       type="button"
+                      data-testid="studio-reset-default-wb-btn"
+                      onClick={() => {
+                        const restored = restoreDefaultWorldBookEntries(worldBookEntries);
+                        onAiConfigChange({
+                          ...aiConfig,
+                          worldBookEntries: restored,
+                        });
+                        setPromptRules(prev => ({
+                          ...prev,
+                          enabledWorldBookIds: Array.from(
+                            new Set([...prev.enabledWorldBookIds, 'wb-d0-default'])
+                          ),
+                        }));
+                        setSelectedWbEntryId(restored[0]?.id ?? null);
+                      }}
+                      title="恢复内置世界书词条的默认内容（保留你手动新增的自定义词条）"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-white/80 hover:text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>恢复默认</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setShowNewWbForm(prev => !prev)}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 text-[11px] font-bold transition-colors cursor-pointer"
                     >
@@ -3053,6 +3077,22 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                         </h4>
                       </div>
 
+                      <div className="flex items-center gap-2">
+                        {DEFAULT_WORLD_BOOK_ENTRIES.some(d => d.id === selectedWbEntry.id) && (
+                          <button
+                            type="button"
+                            data-testid="studio-restore-single-wb-btn"
+                            onClick={() => {
+                              const def = DEFAULT_WORLD_BOOK_ENTRIES.find(d => d.id === selectedWbEntry.id);
+                              if (!def) return;
+                              handleUpdateSharedWorldBookEntry(selectedWbEntry.id, { ...def });
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs text-white/80 hover:text-white cursor-pointer"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>恢复此条默认</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleDeleteSharedWorldBookEntry(selectedWbEntry.id)}
@@ -3061,6 +3101,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                           <Trash2 className="w-3.5 h-3.5" />
                           <span>删除词条</span>
                         </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3239,7 +3280,38 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                     编辑角色：{editingCharacter.name}
                   </h4>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      data-testid="studio-export-chara-png-btn"
+                      onClick={() => void handleExportCharacterCardPng()}
+                      title="将当前角色的人设 Prompt、全部立绘表情差分与启用的小剧场世界书隐写打包进一张 PNG 角色卡图片中，像酒馆角色卡一样方便分享"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-bold cursor-pointer shadow-xs"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>导出角色卡 (PNG)</span>
+                    </button>
+
+                    <label
+                      data-testid="studio-import-chara-btn"
+                      title="导入他人分享的 PNG 角色卡图片或 JSON 角色卡文件"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.14] text-xs font-semibold text-white cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>导入角色卡 (PNG/JSON)</span>
+                      <input
+                        type="file"
+                        accept="image/png,.png,application/json,.json"
+                        data-testid="studio-import-chara-input"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          e.target.value = '';
+                          if (file) void handleImportCharacterCardFile(file);
+                        }}
+                      />
+                    </label>
+
                     <button
                       type="button"
                       onClick={() =>
@@ -3286,6 +3358,15 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                     )}
                   </div>
                 </div>
+                {charaCardStatus && (
+                  <div
+                    role="status"
+                    data-testid="studio-chara-card-status"
+                    className="px-3.5 py-2 rounded-xl bg-amber-400/15 border border-amber-300/30 text-xs text-amber-200 font-medium"
+                  >
+                    {charaCardStatus}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -3626,32 +3707,24 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                 </div>
 
                 <div className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <PromptPlacementControls
-                      label="表情与特效规则定位"
-                      value={promptRules.expressionRulePlacement}
-                      onChange={patch =>
-                        setPromptRules(prev => ({
+                  <PromptPlacementControls
+                    label="总规则模板插入位置"
+                    value={promptRules.timelineRulePlacement}
+                    onChange={patch =>
+                      setPromptRules(prev => {
+                        const nextPlacement = { ...prev.timelineRulePlacement, ...patch };
+                        return {
                           ...prev,
-                          expressionRulePlacement: { ...prev.expressionRulePlacement, ...patch },
-                        }))
-                      }
-                    />
-                    <PromptPlacementControls
-                      label="时间线与输出格式定位"
-                      value={promptRules.timelineRulePlacement}
-                      onChange={patch =>
-                        setPromptRules(prev => ({
-                          ...prev,
-                          timelineRulePlacement: { ...prev.timelineRulePlacement, ...patch },
-                        }))
-                      }
-                    />
-                  </div>
+                          expressionRulePlacement: nextPlacement,
+                          timelineRulePlacement: nextPlacement,
+                        };
+                      })
+                    }
+                  />
 
                   <textarea
                     data-testid="expression-rule-template-textarea"
-                    rows={15}
+                    rows={16}
                     value={
                       promptRules.timelineRuleTemplate
                         ? `${promptRules.expressionRuleTemplate}\n\n${promptRules.timelineRuleTemplate}`
@@ -3659,7 +3732,7 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
                     }
                     onChange={e => {
                       const val = e.target.value;
-                      const splitIdx = val.search(/\n\n(?=【录屏时间线)/);
+                      const splitIdx = val.search(/\n\n(?=---\r?\n录屏时间线|【录屏时间线)/);
                       if (splitIdx !== -1) {
                         setPromptRules(prev => ({
                           ...prev,
@@ -4046,9 +4119,29 @@ export const RecordingStudioPage: React.FC<RecordingStudioPageProps> = ({
               ))}
             </div>
           )}
-          <StudioBookendEditor scene={bookends.ending} kind="ending" userName={userChar.name} companionName={activeCompanion.name} onChange={ending => setBookends(prev => ({ ...prev, ending }))} />
+          <StudioBookendEditor
+            scene={bookends.ending}
+            kind="ending"
+            userName={userChar.name}
+            companionName={activeCompanion.name}
+            onChange={ending => setBookends(prev => ({ ...prev, ending }))}
+            finaleImages={bookends.finaleImages || []}
+            onChangeFinaleImages={finaleImages =>
+              setBookends(prev => ({ ...prev, finaleImages }))
+            }
+          />
         </section>
       </div>
+
+      <StudioScrapbookModal
+        isOpen={isScrapbookModalOpen}
+        onClose={() => setIsScrapbookModalOpen(false)}
+        boardTitle={boardTitle}
+        entries={orderedScriptItems}
+        gradingSystem={gradingSystem}
+        userPersona={userChar}
+        companionPersona={activeCompanion}
+      />
     </div>
   );
 };

@@ -18,6 +18,7 @@ import {
   Loader2,
   Archive,
   Layers,
+  RotateCcw,
 } from 'lucide-react';
 import type { TierGradingSystem, TierRowStyle, TierScore } from '../types';
 import { ALL_TIER_SCORES, LETTER_TIER_SCORES, formatTierLabel } from '../lib/tierLogic';
@@ -55,9 +56,10 @@ interface SettingsDrawerProps {
   onToggleGlassBlur: (val: boolean) => void;
   glassBlurPx: number;
   onChangeGlassBlurPx: (px: number) => void;
-  onExportJson: () => void;
+  onExportJson: (includeCredentials?: boolean) => void;
   isExportingBackup?: boolean;
   onImportJsonFile: (file: File) => void;
+  onResetPromptsAndWorldBooks?: () => void;
   onClearAllData: () => void;
 }
 
@@ -93,12 +95,14 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
   onExportJson,
   isExportingBackup = false,
   onImportJsonFile,
+  onResetPromptsAndWorldBooks,
   onClearAllData,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgUploadInputRef = useRef<HTMLInputElement>(null);
   const storageStatus = useSyncExternalStore(subscribeStorage, getStorageStatus);
   const [recoveryMessage, setRecoveryMessage] = useState('');
+  const [includeCredentialsInBackup, setIncludeCredentialsInBackup] = useState(false);
 
   if (!isOpen) return null;
 
@@ -591,18 +595,28 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-white">
                 <Archive className="w-3.5 h-3.5 text-white/75" />
-                <span>All-in-One 全量打包备份</span>
+                <span>数据备份与恢复</span>
               </div>
               <p className="text-[11px] text-white/50 leading-relaxed">
-                包含排行榜、候选池、漫评、背景、AI 配置，以及小剧场台本、角色差分、配图、Prompt、开场收尾与语速。本地上传的图片自动内嵌保存，外链图片保留原始地址。备份含 Token 和 API Key，请勿公开分享。
+                包含排行榜、候选池、漫评、背景配置，以及小剧场台本、角色差分、配图、开场收尾与语速。默认不导出个人密钥，方便直接分享给朋友。
               </p>
+              <label className="flex items-center gap-2 text-xs text-white/85 cursor-pointer py-1">
+                <input
+                  type="checkbox"
+                  data-testid="backup-include-credentials-checkbox"
+                  checked={includeCredentialsInBackup}
+                  onChange={e => setIncludeCredentialsInBackup(e.target.checked)}
+                  className="accent-white"
+                />
+                <span>导出时包含 API Key 与 Bangumi Token 等个人凭证</span>
+              </label>
               <p data-testid="backup-storage-status" className="text-[11px] text-white/70">{storageStatus}</p>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   data-testid="export-all-in-one-btn"
                   disabled={isExportingBackup}
-                  onClick={onExportJson}
+                  onClick={() => onExportJson(includeCredentialsInBackup)}
                   className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {isExportingBackup ? (
@@ -613,7 +627,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                   ) : (
                     <>
                       <Download className="w-3.5 h-3.5" />
-                      <span>导出全量备份</span>
+                      <span>导出备份</span>
                     </>
                   )}
                 </button>
@@ -638,7 +652,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                   className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.12] text-xs font-semibold text-white transition-colors cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>导入全量备份</span>
+                  <span>导入备份</span>
                 </button>
               </div>
               <button type="button" data-testid="restore-before-import-btn" className="text-[11px] text-white/65 underline cursor-pointer" onClick={async () => {
@@ -649,13 +663,26 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
               }
             </div>
 
+            {onResetPromptsAndWorldBooks && (
+              <button
+                type="button"
+                data-testid="reset-prompts-and-worldbooks-btn"
+                onClick={onResetPromptsAndWorldBooks}
+                className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.14] text-xs font-semibold text-white transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>重置世界书、人设与小剧场规则模板为默认</span>
+              </button>
+            )}
+
             <button
               type="button"
+              data-testid="clear-all-data-btn"
               onClick={onClearAllData}
               className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/25 text-xs font-medium text-rose-200 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>清空全部排行榜数据</span>
+              <span>清空排行榜数据并恢复默认配置</span>
             </button>
           </div>
         </div>

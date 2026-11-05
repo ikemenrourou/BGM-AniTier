@@ -56,6 +56,7 @@ import {
   formatTierLabel,
   normalizeWorldBookEntries,
   normalizeWorldBookConfig,
+  restoreDefaultWorldBookEntries,
 } from '../lib/tierLogic';
 import {
   compressImageFileToDataUrl,
@@ -1343,6 +1344,22 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
                     </span>
                     <button
                       type="button"
+                      data-testid="reset-default-worldbook-btn"
+                      onClick={() => {
+                        updateAiConfig(prev => ({
+                          ...prev,
+                          worldBookEntries: restoreDefaultWorldBookEntries(prev.worldBookEntries),
+                        }));
+                        setSelectedEntryId('wb-d0-default');
+                      }}
+                      title="恢复内置默认世界书词条（自定义新增的词条会保留）"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.12] text-[11px] font-semibold text-white/85 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>恢复默认</span>
+                    </button>
+                    <button
+                      type="button"
                       data-testid="add-worldbook-entry-btn"
                       onClick={() => setShowNewEntryForm(prev => !prev)}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 text-[11px] font-bold transition-colors cursor-pointer"
@@ -1481,14 +1498,32 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2">
+                        {DEFAULT_WORLD_BOOK_ENTRIES.some(
+                          d => d.id === selectedWorldBookEntry.id,
+                        ) && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteWorldBookEntry(selectedWorldBookEntry.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-xs text-rose-200 cursor-pointer"
+                            data-testid="restore-single-worldbook-btn"
+                            onClick={() => {
+                              const def = DEFAULT_WORLD_BOOK_ENTRIES.find(
+                                d => d.id === selectedWorldBookEntry.id,
+                              );
+                              if (def) handleUpdateWorldBookEntry(def.id, { ...def });
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-xs text-white/80 cursor-pointer"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>删除词条</span>
+                            <RotateCcw className="w-3 h-3" />
+                            <span>恢复此条默认</span>
                           </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWorldBookEntry(selectedWorldBookEntry.id)}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-xs text-rose-200 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>删除词条</span>
+                        </button>
                       </div>
                     </div>
 

@@ -164,6 +164,7 @@ export interface StudioBookendScene {
 export interface StudioBookends {
   opening: StudioBookendScene;
   ending: StudioBookendScene;
+  finaleImages?: string[];
 }
 
 /** Keep these separate from per-work scripts so reordering or refreshing the board preserves them. */
@@ -179,7 +180,14 @@ export function normalizeStudioBookends(value?: unknown): StudioBookends {
       generateAi: typeof data.generateAi === 'boolean' ? data.generateAi : true,
     };
   };
-  return { opening: scene('opening'), ending: scene('ending') };
+  const finaleImages = Array.isArray(saved.finaleImages)
+    ? saved.finaleImages.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())).slice(0, 4)
+    : undefined;
+  return {
+    opening: scene('opening'),
+    ending: scene('ending'),
+    ...(finaleImages && finaleImages.length > 0 ? { finaleImages } : {}),
+  };
 }
 
 export interface StudioCharacterConfig {
@@ -965,7 +973,65 @@ export function normalizeStudioCompanions(saved?: unknown): StudioCharacterConfi
   return characters.length ? characters : normalizeStudioCompanions();
 }
 
-export const DEFAULT_EXPRESSION_RULE_TEMPLATE = `【立绘表情差分与头顶漫符规则】
+export const DEFAULT_EXPRESSION_RULE_TEMPLATE = `---
+语法定义:
+  rule: 当按照下方 \`format\` 模板输出台本时，严格遵循以下占位符与指令语法
+  grammar:
+    - 将 \${描述} 替换为符合描述且贴合你自身人设口吻的实际生成内容
+    - 遵循 \$(要求) 中的内联生成约束，但不在最终结果中输出 \$(...) 符号及其内部文字
+    - 遇到 ... 时，依照前文规则与结构按出场顺位继续生成后续全部作品条目
+    - 其余未标记的固定格式字符（如 <<<ANIME_ID:...>>>、方括号与尖括号标签）均原样输出
+---
+立绘表情差分与头顶漫符系统:
+  description: 控制演播舞台右下角 AI 搭档立绘的实时表情切换与头顶情绪漫符
+  rule:
+    - 台词无需每句强制标注表情；未标注时舞台自动维持上一状态或默认立绘
+    - 在情绪明确时使用 \`[\${表情名}]\`，播放器会在打字到该字符位置时原地平滑切换立绘（不断句、不清屏）
+    - 单句一气呵成时使用 1 个 \`[\${表情名}]\`；若单句前后出现明显态度或情绪转折（且可用表情多于 1 个），可在句中转折处插入第 2 个 \`[\${表情名}]\`（每条台词最多 2 个表情标签）
+    - 严格从下方 \`可用立绘表情列表\` 的方括号名称中原样选取，只使用列表中真实存在的表情名
+    - 仅在全榜情绪最强烈的关键瞬间（占全部台词 15%～20% 以内），在表情名后附带冒号与漫符：\`[\${表情名}:\${漫符名}]\`；其余 80% 以上日常台词仅写 \`[\${表情名}]\`
+  可用立绘表情列表:
+{{EXPRESSION_LIST}}
+  可用头顶漫符列表:
+{{EMOTE_LIST}}
+---
+气泡内联文字特效与动态换页系统:
+  description: 控制对话气泡内局部重点词的视觉动效与长句翻页节奏
+  rule:
+    - 视觉特效仅用于点缀句中 2～8 字的核心短语或槽点，使用尖括号 \`<...>\` 闭合，与方括号表情标签严格区分：
+      * 放大强调：\`<big>\${重点词}</big>\` \$(用于惊叹、爆发或核心关键词)
+      * 文字颤抖：\`<shake>\${情绪词}</shake>\` \$(用于震惊、破防或强烈动摇)
+      * 横线划掉：\`<del>\${划掉的真话或吐槽}</del>\` \$(文字保留可见并画横杠删除线，用于欲盖弥彰或小声拆台)
+      * 心虚耳语：\`<whisper>\${小声嘀咕内容}</whisper>\` \$(渲染为浅灰小字，用于碎碎念或心虚补刀)
+    - 动态换页：单页气泡建议控制在 40～50 字以内；遇到高能长评或需要前后翻页抖包袱时，在两段之间插入 \`[换页]\`，播放器会清空气泡并翻至下一页继续打字`;
+
+export const DEFAULT_TIMELINE_RULE_TEMPLATE = `---
+录屏时间线与双人互动系统:
+  description: 本期视频共 {{TOTAL_WORKS}} 部作品，按【出场顺位 #1】至【出场顺位 #{{TOTAL_WORKS}}】依次从候选池揭晓飞入 Tier 榜
+  rule:
+    - 时间线防剧透：候选池作品标题对观众可见，可自然提及或与已出场作品跨番对比；**只禁止提前透露或暗示还未出场作品的最终分数、档位；不限制提及作品名称**
+    - 双人互动衔接：
+      * 若条目含 \`UP主本人的先行吐槽\`：画面中 UP 主会先发言，你紧接着直接接话互动、拆台或附和 \$(保持自身人设，直接回应其观点而非复述原话)
+      * 若条目标注 \`UP主本人未写台词\`：由你单人控场，直接从自身角色视角切入锐评
+      * 若条目含 \`UP主晒出的配图/画面暗注\`：自然假装亲眼看到画面内容并直接结合画面吐槽 \$(切勿提及“根据备注/暗注”等提示词机制)
+    - 多载体自适应与防同质化（打破连续生成惯性）：
+      * 画面已同步显示番名与档位，开篇直接切入具体槽点或亮点
+      * 根据条目 \`类型\` 匹配评价维度：动画聚焦角色/作画演出/监督脚本/声优；书籍聚焦文笔/插画分镜/人设；游戏聚焦玩法系统/剧本路线/原画演出
+      * 单条台词字数在 15～65 字间随情绪自然长短交替（1～2 句，换页时可适度延展）；相邻作品在「角色厨力与声优梗」「制作班底功底」「UP主给分与BGM均分/弃番率反差」「BGM网友真实吐槽共鸣或反驳」「自身人设小癖好」之间轮换切入角度与起手句式
+  format: |-
+    <<<ANIME_ID:\${作品数字ID}>>> [\${表情名}] \${贴合你自身人设与口吻的互动锐评台词，可按需点缀<big>\${重点词}</big>等内联特效或插入第二个[\${转折表情名}]与[换页]}\$(单条15~65字弹性浮动，相邻条目变换起手句式)
+    ...\$(按出场顺位依次完成全部 {{TOTAL_WORKS}} 部作品的独立行输出，不输出任何代码块围栏或额外寒暄)`;
+
+export const DEFAULT_STUDIO_PROMPT_RULES_CONFIG: StudioPromptRulesConfig = {
+  expressionRuleTemplate: DEFAULT_EXPRESSION_RULE_TEMPLATE,
+  timelineRuleTemplate: DEFAULT_TIMELINE_RULE_TEMPLATE,
+  enabledWorldBookIds: ['wb-d0-default'],
+  expressionRulePlacement: { position: 'd0', priority: 200 },
+  timelineRulePlacement: { position: 'd0', priority: 200 },
+};
+
+const OLD_EXPRESSION_RULE_FINGERPRINTS = new Set([
+  presetFingerprint(`【立绘表情差分与头顶漫符规则】
 1. 表情切换规则：
    - 不强制每条台词开头都必须写表情。若台词未标注表情，会自动沿用当前默认立绘；
    - 建议在情绪明确时使用 \`[表情名]\`。立绘会在打字到该位置时原地平滑切换（不会清除或打断气泡文字）；
@@ -985,9 +1051,11 @@ export const DEFAULT_EXPRESSION_RULE_TEMPLATE = `【立绘表情差分与头顶�
    - 横线划掉：\`<del>\${吐槽或真话}</del>\` 或 \`<mask>\${吐槽或真话}</mask>\` 或 \`{划:\${吐槽或真话}}\`（文字中间画一条横杠删除线，观众依然能清晰看见文字，用于“划掉真话”或欲盖弥彰的吐槽）
    - 心虚耳语：\`<whisper>\${嘀咕吐槽}</whisper>\` 或 \`{虚:\${嘀咕吐槽}}\`（表现为浅灰小字，用于小声逼逼或心虚拆台）
 2. 动态换页机制：
-   - 对话框单页容量建议 40～50 字以内。遇到长篇高能评价或需要前后两段翻页抖包袱时，可在两段台词中间插入 \`[换页]\`；播放器会清空气泡并翻至下一页继续输出。短台词无需换页。`;
+   - 对话框单页容量建议 40～50 字以内。遇到长篇高能评价或需要前后两段翻页抖包袱时，可在两段台词中间插入 \`[换页]\`；播放器会清空气泡并翻至下一页继续输出。短台词无需换页。`),
+]);
 
-export const DEFAULT_TIMELINE_RULE_TEMPLATE = `【录屏时间线防剧透与双人互动规则】
+const OLD_TIMELINE_RULE_FINGERPRINTS = new Set([
+  presetFingerprint(`【录屏时间线防剧透与双人互动规则】
 1. 严格时间线防剧透：
    - 本期视频共有 {{TOTAL_WORKS}} 部作品，严格按照【出场顺位 #1】到【出场顺位 #{{TOTAL_WORKS}}】依次从候选池揭晓并飞入 Tier 榜。
    - 候选池中的作品名称对观众可见，可以自然提及或与前面已出场的作品进行跨番对比。
@@ -1002,23 +1070,42 @@ export const DEFAULT_TIMELINE_RULE_TEMPLATE = `【录屏时间线防剧透与双
      * 单表情格式：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}] \${贴合你自身人设与口吻的台词，可适度包含特效如<big>\${重点词}</big>}\`
      * 转折双表情格式：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}] \${前半句台词} [\${第二个表情名}] \${后半句台词}\`
      * 附带漫符格式（低频使用）：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}:\${漫符名}] \${贴合你自身人设与口吻的台词}\`
-     * 长句换页格式（按需使用）：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}] \${第一页台词} [换页] [\${可选后续表情}] \${第二页台词}\``;
+     * 长句换页格式（按需使用）：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}] \${第一页台词} [换页] [\${可选后续表情}] \${第二页台词}\``),
+]);
 
-export const DEFAULT_STUDIO_PROMPT_RULES_CONFIG: StudioPromptRulesConfig = {
-  expressionRuleTemplate: DEFAULT_EXPRESSION_RULE_TEMPLATE,
-  timelineRuleTemplate: DEFAULT_TIMELINE_RULE_TEMPLATE,
-  enabledWorldBookIds: ['wb-d0-default'],
-  expressionRulePlacement: { position: 'd0', priority: 199 },
-  timelineRulePlacement: { position: 'd0', priority: 200 },
-};
+function upgradeExpressionRuleTemplate(raw?: string): string {
+  if (typeof raw !== 'string') return DEFAULT_EXPRESSION_RULE_TEMPLATE;
+  const trimmed = raw.replace(/\r\n/g, '\n').trim();
+  if (!trimmed || OLD_EXPRESSION_RULE_FINGERPRINTS.has(presetFingerprint(trimmed))) {
+    return DEFAULT_EXPRESSION_RULE_TEMPLATE;
+  }
+  return raw;
+}
+
+function upgradeTimelineRuleTemplate(raw?: string): string {
+  if (typeof raw !== 'string') return DEFAULT_TIMELINE_RULE_TEMPLATE;
+  const normalized = normalizeStudioTimelineRuleTemplate(raw).replace(/\r\n/g, '\n').trim();
+  if (OLD_TIMELINE_RULE_FINGERPRINTS.has(presetFingerprint(normalized))) {
+    return DEFAULT_TIMELINE_RULE_TEMPLATE;
+  }
+  return normalizeStudioTimelineRuleTemplate(raw);
+}
 
 export function normalizeStudioPromptRules(value?: Partial<StudioPromptRulesConfig> | null): StudioPromptRulesConfig {
+  const timelinePlacement = normalizePromptPlacement(
+    value?.timelineRulePlacement ?? value?.expressionRulePlacement,
+    DEFAULT_STUDIO_PROMPT_RULES_CONFIG.timelineRulePlacement,
+  );
+  const expressionPlacement = normalizePromptPlacement(
+    value?.expressionRulePlacement ?? value?.timelineRulePlacement,
+    timelinePlacement,
+  );
   return {
-    expressionRuleTemplate: normalizeReportMarkup(typeof value?.expressionRuleTemplate === 'string' ? value.expressionRuleTemplate : DEFAULT_EXPRESSION_RULE_TEMPLATE),
-    timelineRuleTemplate: normalizeReportMarkup(normalizeStudioTimelineRuleTemplate(typeof value?.timelineRuleTemplate === 'string' ? value.timelineRuleTemplate : DEFAULT_TIMELINE_RULE_TEMPLATE)),
+    expressionRuleTemplate: normalizeReportMarkup(upgradeExpressionRuleTemplate(value?.expressionRuleTemplate)),
+    timelineRuleTemplate: normalizeReportMarkup(upgradeTimelineRuleTemplate(value?.timelineRuleTemplate)),
     enabledWorldBookIds: Array.isArray(value?.enabledWorldBookIds) ? value.enabledWorldBookIds.filter(id => typeof id === 'string') : [...DEFAULT_STUDIO_PROMPT_RULES_CONFIG.enabledWorldBookIds],
-    expressionRulePlacement: normalizePromptPlacement(value?.expressionRulePlacement, DEFAULT_STUDIO_PROMPT_RULES_CONFIG.expressionRulePlacement),
-    timelineRulePlacement: normalizePromptPlacement(value?.timelineRulePlacement, DEFAULT_STUDIO_PROMPT_RULES_CONFIG.timelineRulePlacement),
+    expressionRulePlacement: expressionPlacement,
+    timelineRulePlacement: timelinePlacement,
   };
 }
 
