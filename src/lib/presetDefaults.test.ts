@@ -4,13 +4,23 @@ import { readFileSync } from 'node:fs';
 import { AI_ROLES, ATRI_AVATAR_URL, buildTasteReportPrompt, LEGACY_ATRI_AVATAR_URL, normalizeVisibleTiers } from './tierLogic';
 import { FEIYU_DEFAULT_PERSONA_PROMPT, FEIYU_REPORT_TASK_PROMPT, FEIYU_STUDIO_PERSONA_PROMPT, FEIYU_STUDIO_TASK_PROMPT, upgradeFeiyuPrompt } from './feiyuPersona';
 import { buildInitialStudioScriptList, buildStudioTimelinePrompt, DEFAULT_STUDIO_AI_COMPANIONS, DEFAULT_USER_STUDIO_CHARACTER, normalizeStudioCompanions, normalizeStudioUserCharacter, resolveCharacterStandeeUrl, updateStudioCharacter, type StudioCharacterConfig } from './studioDirector';
+import { DEFAULT_HOST_AVATAR_URL } from './studioHostAvatar';
 import { createBackup, parseBackup } from './backup';
 import { fieldsToStorage, STUDIO_FIELDS, STUDIO_STORAGE_KEYS, STORAGE_KEYS } from './persistenceSchema';
 import { DEFAULT_THEME_ID, DEFAULT_THEME_VERSION, getInitialThemeId } from './themes';
 
 const oldPrompt = readFileSync(new URL('./fixtures/feiyu-persona-v1.txt', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const oldStockPromptV2 = readFileSync(new URL('./fixtures/feiyu-persona-v2.txt', import.meta.url), 'utf8').replace(/\r\n/g, '\n').trim();
-const oldHost: StudioCharacterConfig = JSON.parse(readFileSync(new URL('./fixtures/studio-host-v1.json', import.meta.url), 'utf8'));
+// Generic stand-in for a host saved by an older build: no personal names or art.
+const savedHost: StudioCharacterConfig = {
+  id: 'user-host',
+  name: '旧版主持人',
+  subtitle: 'UP主',
+  defaultAvatarUrl: DEFAULT_HOST_AVATAR_URL,
+  customExpressions: [{ id: 'user-think', name: '思考', url: DEFAULT_HOST_AVATAR_URL, note: '默认立绘' }],
+  voicePreset: 'creator_clean',
+  voicePitch: 0.96,
+};
 
 test('new and retired four-row boards show all integer tiers while custom and letter selections survive', () => {
   const integers = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
@@ -108,22 +118,37 @@ test('Atri uses the new avatar while stock saves migrate and custom art survives
   assert.equal(custom.customExpressions[0].url, 'data:image/png;base64,mine');
 });
 
-test('retired private host upgrades to neutral assets without replacing custom art or voice', () => {
-  const upgraded = normalizeStudioUserCharacter(oldHost);
-  assert.equal(upgraded.name, 'UP主本人');
-  assert.equal(upgraded.defaultAvatarUrl, DEFAULT_USER_STUDIO_CHARACTER.defaultAvatarUrl);
-  assert.equal(upgraded.customExpressions[0].url, upgraded.defaultAvatarUrl);
-  assert.equal(upgraded.voicePreset, 'neutral_soft');
-  assert.equal(upgraded.voicePitch, 1);
-  const custom = { ...oldHost, name: '我的主持人', defaultAvatarUrl: 'data:image/png;base64,personal', voicePreset: 'atri_crystal' as const, voicePitch: 1.3, customExpressions: [{ id: 'mine', name: '微笑', url: 'data:image/png;base64,mine' }] };
+test('host art, name and voice stay generic until the owner changes them', () => {
+  const stock = normalizeStudioUserCharacter({
+    id: 'user-host',
+    name: 'UP主',
+    subtitle: 'UP主',
+    defaultAvatarUrl: DEFAULT_HOST_AVATAR_URL,
+    customExpressions: [{ id: 'user-think', name: '思考', url: DEFAULT_HOST_AVATAR_URL, note: '默认立绘' }],
+    voicePreset: 'neutral_soft',
+    voicePitch: 1,
+  });
+  assert.equal(stock.defaultAvatarUrl, DEFAULT_USER_STUDIO_CHARACTER.defaultAvatarUrl);
+  assert.equal(stock.customExpressions[0].url, DEFAULT_USER_STUDIO_CHARACTER.defaultAvatarUrl);
+  assert.equal(stock.customExpressions[0].followDefaultAvatar, true);
+
+  const custom = {
+    id: 'user-host',
+    name: '我的主持人',
+    subtitle: 'UP主',
+    defaultAvatarUrl: 'data:image/png;base64,personal',
+    voicePreset: 'atri_crystal' as const,
+    voicePitch: 1.3,
+    customExpressions: [{ id: 'mine', name: '微笑', url: 'data:image/png;base64,mine' }],
+  };
   assert.deepEqual(normalizeStudioUserCharacter(custom), custom);
-  const customVoice = normalizeStudioUserCharacter({ ...oldHost, voicePreset: 'retro_rpg', voicePitch: 0.75 });
+  const customVoice = normalizeStudioUserCharacter({ ...custom, voicePreset: 'retro_rpg', voicePitch: 0.75 });
   assert.equal(customVoice.voicePreset, 'retro_rpg');
   assert.equal(customVoice.voicePitch, 0.75);
 });
 
 test('updated presets and edited settings round-trip in full backups without creating demo content', () => {
-  const host = normalizeStudioUserCharacter(oldHost);
+  const host = normalizeStudioUserCharacter(savedHost);
   const companions = normalizeStudioCompanions([{ ...DEFAULT_STUDIO_AI_COMPANIONS[0], prompt: oldPrompt }]);
   const values = fieldsToStorage({ userChar: host, companions }, STUDIO_FIELDS);
   const restored = parseBackup(createBackup(values));
@@ -134,37 +159,38 @@ test('updated presets and edited settings round-trip in full backups without cre
   assert.equal(restored[STORAGE_KEYS.TASTE_REPORT], '');
 });
 
-test('explicit host edits survive remount, reload and backup even when choosing a retired stock URL', () => {
+test('explicit host edits survive remount, reload and backup', () => {
+  const customArt = 'https://example.test/my-standee.png';
   const updated = updateStudioCharacter(DEFAULT_USER_STUDIO_CHARACTER, {
-    defaultAvatarUrl: oldHost.defaultAvatarUrl,
+    defaultAvatarUrl: customArt,
   });
   const saved = fieldsToStorage({ userChar: updated }, STUDIO_FIELDS);
   const restored = parseBackup(createBackup(saved));
   let reloaded = JSON.parse(restored[STUDIO_STORAGE_KEYS.USER_CHAR]);
   for (let i = 0; i < 3; i++) {
     reloaded = normalizeStudioUserCharacter(JSON.parse(JSON.stringify(reloaded)));
-    assert.equal(reloaded.defaultAvatarUrl, oldHost.defaultAvatarUrl);
-    assert.equal(resolveCharacterStandeeUrl(reloaded, '思考'), oldHost.defaultAvatarUrl);
+    assert.equal(reloaded.defaultAvatarUrl, customArt);
+    assert.equal(resolveCharacterStandeeUrl(reloaded, '思考'), customArt);
   }
   // Existing edited hosts predate the explicit-custom flag; their art also survives.
-  const existing = normalizeStudioUserCharacter({ ...oldHost, name: '自定义主持人' });
-  assert.equal(existing.defaultAvatarUrl, oldHost.defaultAvatarUrl);
-  const stalePose = normalizeStudioUserCharacter({ ...oldHost, name: '测试主持人', isCustom: true, defaultAvatarUrl: 'data:image/png;base64,custom-saved' });
+  const existing = normalizeStudioUserCharacter({ ...savedHost, name: '自定义主持人', defaultAvatarUrl: customArt });
+  assert.equal(existing.defaultAvatarUrl, customArt);
+  const stalePose = normalizeStudioUserCharacter({ ...savedHost, name: '测试主持人', isCustom: true, defaultAvatarUrl: 'data:image/png;base64,custom-saved' });
   assert.equal(resolveCharacterStandeeUrl(stalePose, '思考'), stalePose.defaultAvatarUrl);
-  const changedPose = updateStudioCharacter(stalePose, { customExpressions: stalePose.customExpressions.map(e => ({ ...e, url: oldHost.defaultAvatarUrl, followDefaultAvatar: false })) });
+  const changedPose = updateStudioCharacter(stalePose, { customExpressions: stalePose.customExpressions.map(e => ({ ...e, url: customArt, followDefaultAvatar: false })) });
   const changedAgain = normalizeStudioUserCharacter(updateStudioCharacter(changedPose, { defaultAvatarUrl: 'data:image/png;base64,new-main' }));
-  assert.equal(resolveCharacterStandeeUrl(changedAgain, '思考'), oldHost.defaultAvatarUrl);
+  assert.equal(resolveCharacterStandeeUrl(changedAgain, '思考'), customArt);
 });
 
 test('host speech uses the custom default while distinct expressions and legacy maps survive edits and backups', () => {
   const avatar = 'data:image/png;base64,custom-default';
   const smile = 'data:image/png;base64,custom-smile';
   const host = normalizeStudioUserCharacter({
-    ...oldHost, name: '帅肉', defaultAvatarUrl: avatar,
-    customExpressions: [...oldHost.customExpressions, { id: 'smile', name: '笑', url: smile }],
-    expressions: { thinking: oldHost.defaultAvatarUrl, happy: smile },
+    ...savedHost, name: '帅肉', defaultAvatarUrl: avatar,
+    customExpressions: [...savedHost.customExpressions, { id: 'smile', name: '笑', url: smile }],
+    expressions: { thinking: savedHost.defaultAvatarUrl, happy: smile },
   });
-  assert.equal(host.name, 'UP主本人');
+  assert.equal(host.name, '帅肉');
   assert.equal(resolveCharacterStandeeUrl(host, 'default'), avatar);
   assert.equal(resolveCharacterStandeeUrl(host, '思考'), avatar);
   assert.equal(resolveCharacterStandeeUrl(host, 'thinking'), avatar);

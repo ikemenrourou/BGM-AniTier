@@ -830,25 +830,19 @@ export const DEFAULT_USER_STUDIO_CHARACTER: StudioCharacterConfig = {
 
 export function normalizeStudioUserCharacter(saved?: Partial<StudioCharacterConfig> | null): StudioCharacterConfig {
   const value = saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
-  const isLegacyAvatar = (url: unknown) => typeof url === 'string' && presetFingerprint(url) === 4222825823;
-  const isLegacyName = typeof value.name === 'string' && [923410515, 996155755].includes(presetFingerprint(value.name));
-  const isUntouchedLegacyPreset = !value.isCustom && isLegacyName && isLegacyAvatar(value.defaultAvatarUrl);
-  const isLegacyVoice = isUntouchedLegacyPreset
-    && value.voicePreset === 'creator_clean' && value.voicePitch === 0.96;
   const expressions = Array.isArray(value.customExpressions)
     ? value.customExpressions.filter(item => item && typeof item.name === 'string' && typeof item.url === 'string')
     : DEFAULT_USER_STUDIO_CHARACTER.customExpressions;
-  const defaultAvatarUrl = isUntouchedLegacyPreset ? DEFAULT_HOST_AVATAR_URL : value.defaultAvatarUrl || DEFAULT_HOST_AVATAR_URL;
-  // Old stock expressions are placeholders for the host's default art. A custom
-  // default must also be used while speaking; genuinely different art survives.
-  const migrateUrl = (url: string) => !value.isCustom && (isLegacyAvatar(url) || url === DEFAULT_HOST_AVATAR_URL) ? defaultAvatarUrl : url;
+  const defaultAvatarUrl = value.defaultAvatarUrl || DEFAULT_HOST_AVATAR_URL;
+  // Only the stock placeholder follows the default art; anything the host picked survives.
+  const migrateUrl = (url: string) => !value.isCustom && url === DEFAULT_HOST_AVATAR_URL ? defaultAvatarUrl : url;
   return {
     ...DEFAULT_USER_STUDIO_CHARACTER,
     ...value,
-    name: !value.isCustom && isLegacyName ? DEFAULT_USER_STUDIO_CHARACTER.name : value.name || DEFAULT_USER_STUDIO_CHARACTER.name,
+    name: value.name || DEFAULT_USER_STUDIO_CHARACTER.name,
     defaultAvatarUrl,
-    voicePreset: isLegacyVoice ? 'neutral_soft' : value.voicePreset || DEFAULT_USER_STUDIO_CHARACTER.voicePreset,
-    voicePitch: isLegacyVoice ? 1 : value.voicePitch ?? DEFAULT_USER_STUDIO_CHARACTER.voicePitch,
+    voicePreset: value.voicePreset || DEFAULT_USER_STUDIO_CHARACTER.voicePreset,
+    voicePitch: value.voicePitch ?? DEFAULT_USER_STUDIO_CHARACTER.voicePitch,
     customExpressions: expressions.map(item => followsDefaultAvatar(item, { ...DEFAULT_USER_STUDIO_CHARACTER, ...value })
       ? { ...item, followDefaultAvatar: true, url: defaultAvatarUrl } : { ...item }),
     ...(value.expressions ? { expressions: Object.fromEntries(Object.entries(value.expressions).map(([name, url]) => [name, migrateUrl(url)])) } : {}),
@@ -858,8 +852,8 @@ export function normalizeStudioUserCharacter(saved?: Partial<StudioCharacterConf
 function followsDefaultAvatar(expression: StudioCustomExpression, character: StudioCharacterConfig): boolean {
   if (character.id !== 'user-host') return false;
   if (typeof expression.followDefaultAvatar === 'boolean') return expression.followDefaultAvatar;
-  return expression.url === character.defaultAvatarUrl || (character.id === 'user-host' && expression.id === 'user-think'
-    && (expression.url === DEFAULT_HOST_AVATAR_URL || presetFingerprint(expression.url) === 4222825823));
+  return expression.url === character.defaultAvatarUrl
+    || (character.id === 'user-host' && expression.id === 'user-think' && expression.url === DEFAULT_HOST_AVATAR_URL);
 }
 
 /** Update expressions that followed the old default, while keeping separate art. */

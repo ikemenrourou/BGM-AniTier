@@ -43,7 +43,7 @@ test('new default rules keep recording guidance in the studio and share the sati
   for (const title of ['双人录屏搭档定位', '🎙️去八股', '🎙️Bangumi数据捕食与认知门控', '🎙️熟人连麦陪看腔']) {
     assert.ok(!report.includes(`title="${title}"`), `${title} should stay out of reports`);
   }
-  for (const title of ['⚡ 嘴臭DLC(可选)', '⚡ 阴阳怪气DLC(可选)', '⚡ XP拷打(可选)', 'AI相关知识库']) {
+  for (const title of ['⚡ 嘴臭DLC(可选)', '⚡ 阴阳怪气DLC(可选)', '⚡ XP拷打(可选)']) {
     assert.ok(!report.includes(`title="${title}"`), `${title} should be off by default`);
     assert.ok(!studio.includes(`title="${title}"`), `${title} should be off by default`);
   }
@@ -63,13 +63,6 @@ test('new default rules keep recording guidance in the studio and share the sati
     enabledWorldBookIds: [...DEFAULT_STUDIO_PROMPT_RULES_CONFIG.enabledWorldBookIds, 'wb-rage-dlc'],
   });
   assertOrder(withDlc, ['title="🎙️Bangumi数据捕食与认知门控"', 'title="⚡ 嘴臭DLC(可选)"', 'title="🎙️熟人连麦陪看腔"']);
-  const withAiKnowledge = buildStudioTimelinePrompt({
-    scriptItems: [],
-    companion: DEFAULT_STUDIO_AI_COMPANIONS[0],
-    enabledWorldBookIds: [...DEFAULT_STUDIO_PROMPT_RULES_CONFIG.enabledWorldBookIds, 'wb-ai-knowledge'],
-  });
-  assertOrder(withAiKnowledge, ['title="通用 ACGN 知识库"', 'title="AI相关知识库"', 'title="互联网讽刺与生草造梗学"']);
-  assert.match(withAiKnowledge, /AI圈掌门人与焦点人物档案/);
 });
 
 test('studio templates can be positioned before or after the character and interleaved with D0 entries', () => {
