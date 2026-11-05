@@ -78,3 +78,7 @@ React 19 · TypeScript · Vite 6 · Tailwind CSS 4 · Express · IndexedDB · Ba
 ## 致谢
 
 [Bangumi 番组计划](https://bgm.tv/) 的作品、角色、收藏与公开吐槽数据。封面与立绘版权归原作者与权利方所有。
+
+## 许可
+
+[MIT](LICENSE)
