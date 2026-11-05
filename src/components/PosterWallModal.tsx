@@ -138,7 +138,7 @@ export const PosterWallModal: React.FC<PosterWallModalProps> = ({
   const [posterSubtitle] = useState<string>(
     'SEASONAL ARCHIVE · ANIME / BOOKS / GAMES',
   );
-  const [curatorName, setCuratorName] = useState<string>(bgmNickname || '肉肉肉肥肉');
+  const [curatorName, setCuratorName] = useState<string>(bgmNickname || 'ANITIER');
   const [layoutStyle, setLayoutStyle] = useState<PosterLayoutStyle>('mixed-collage');
   const [badgeMode, setBadgeMode] = useState<PosterBadgeMode>('score-ring');
   const [shuffleScores, setShuffleScores] = useState<boolean>(true);
