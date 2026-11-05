@@ -4,8 +4,8 @@ import { SafeReportFrame } from './SafeReportFrame';
 import { PromptPlacementControls } from './PromptPlacementControls';
 import { appliesToWorldBookScope, DEFAULT_PROMPT_PLACEMENT, describePromptPlacement, sortPromptEntries, WORLD_BOOK_SCOPE_LABELS } from '../lib/promptOrder';
 import { appStorage } from '../lib/appStorage';
-import { STORAGE_KEYS } from '../lib/persistenceSchema';
-import { FEIYU_AVATAR_URL, upgradeFeiyuPrompt } from '../lib/feiyuPersona';
+import { STORAGE_KEYS, STUDIO_STORAGE_KEYS } from '../lib/persistenceSchema';
+import { FEIYU_AVATAR_URL, FEIYU_DEFAULT_PERSONA_PROMPT, upgradeFeiyuPrompt } from '../lib/feiyuPersona';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Sparkles,
@@ -34,6 +34,7 @@ import {
   Gamepad2,
   Quote,
   MessageSquareWarning,
+  Upload,
 } from 'lucide-react';
 import { marked } from 'marked';
 import type {
@@ -57,6 +58,7 @@ import {
   normalizeWorldBookConfig,
 } from '../lib/tierLogic';
 import {
+  compressImageFileToDataUrl,
   enrichTierMapWithDeepBangumiData,
 } from '../lib/bangumiApi';
 import { summarizeDiscussionData } from '../lib/studioContext';
@@ -118,16 +120,64 @@ const STICKERS_BY_ROLE: Record<string, string[]> = {
   patrick_star: ['https://files.catbox.moe/e1cxho.png'],
 };
 
+let cachedStudioCompanionsRaw: string | null = null;
+let cachedStudioFeiyuPrompt: string | null = null;
+
+function readStudioFeiyuPrompt(): string | null {
+  try {
+    const raw = appStorage.getItem(STUDIO_STORAGE_KEYS.COMPANIONS);
+    if (!raw) {
+      cachedStudioCompanionsRaw = null;
+      cachedStudioFeiyuPrompt = null;
+      return null;
+    }
+    if (raw === cachedStudioCompanionsRaw) {
+      return cachedStudioFeiyuPrompt;
+    }
+    cachedStudioCompanionsRaw = raw;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      cachedStudioFeiyuPrompt = null;
+      return null;
+    }
+    const found = parsed.find(
+      (item: unknown) =>
+        item &&
+        typeof item === 'object' &&
+        ((item as Record<string, unknown>).id === 'studio-feiyu' ||
+          String((item as Record<string, unknown>).name || '').includes('大肥鱼')),
+    ) as Record<string, unknown> | undefined;
+    if (found && typeof found.prompt === 'string' && found.prompt.trim()) {
+      cachedStudioFeiyuPrompt = upgradeFeiyuPrompt(found.prompt.trim());
+      return cachedStudioFeiyuPrompt;
+    }
+    cachedStudioFeiyuPrompt = null;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 function normalizePersonasList(
   savedPersonas?: unknown[] | null,
   fromLegacyStorage = false,
 ): AIRoleConfig[] {
+  const studioFeiyuPrompt = readStudioFeiyuPrompt();
   if (!Array.isArray(savedPersonas) || savedPersonas.length === 0) {
-    return DEFAULT_PERSONAS.map(p => ({ ...p }));
+    return DEFAULT_PERSONAS.map(p =>
+      p.id === 'feiyu' && studioFeiyuPrompt
+        ? { ...p, prompt: normalizeReportMarkup(studioFeiyuPrompt) }
+        : { ...p },
+    );
   }
   const map = new Map<string, AIRoleConfig>();
   for (const def of DEFAULT_PERSONAS) {
-    map.set(def.id, { ...def });
+    map.set(
+      def.id,
+      def.id === 'feiyu' && studioFeiyuPrompt
+        ? { ...def, prompt: normalizeReportMarkup(studioFeiyuPrompt) }
+        : { ...def },
+    );
   }
   for (const raw of savedPersonas) {
     if (!raw || typeof raw !== 'object') continue;
@@ -157,9 +207,19 @@ function normalizePersonasList(
         rawPrompt.length < 400 &&
         !rawPrompt.includes('<RoleDefinition>'));
 
-    const prompt = isBuiltIn && id === 'feiyu'
+    let prompt = isBuiltIn && id === 'feiyu'
       ? upgradeFeiyuPrompt(rawPrompt)
       : isOldGeneratedPrompt && fallbackDef ? fallbackDef.prompt : rawPrompt || fallbackDef?.prompt || '';
+
+    // If Taste Report's feiyu is still on the built-in default prompt while Studio's studio-feiyu was customized by the user, inherit Studio's prompt automatically
+    if (
+      isBuiltIn &&
+      id === 'feiyu' &&
+      studioFeiyuPrompt &&
+      prompt.trim() === FEIYU_DEFAULT_PERSONA_PROMPT.trim()
+    ) {
+      prompt = studioFeiyuPrompt;
+    }
 
     map.set(id, {
       id,
@@ -195,7 +255,7 @@ export function loadSavedAiConfig(): AIConfig {
         apiKey: parsed.apiKey || '',
         model: parsed.model || 'gemini-2.5-flash',
         availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
-        selectedPersonaId: parsed.selectedPersonaId || 'mesugaki',
+        selectedPersonaId: parsed.selectedPersonaId || 'feiyu',
         personas: normalizePersonasList(parsed.personas, fromLegacy),
         ...normalizeWorldBookConfig({ worldBookEntries: parsed.worldBookEntries, d0Prompt: typeof parsed.d0Prompt === 'string' ? parsed.d0Prompt : '' }),
       };
@@ -208,7 +268,7 @@ export function loadSavedAiConfig(): AIConfig {
     apiKey: '',
     model: 'gemini-2.5-flash',
     availableModels: [],
-    selectedPersonaId: 'mesugaki',
+    selectedPersonaId: 'feiyu',
     personas: normalizePersonasList(DEFAULT_PERSONAS),
     worldBookEntries: normalizeWorldBookEntries(DEFAULT_WORLD_BOOK_ENTRIES),
     d0Prompt: '',
@@ -309,7 +369,7 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
   const [newEntryPlacement, setNewEntryPlacement] = useState({ ...DEFAULT_PROMPT_PLACEMENT, scope: 'all' as const } as Pick<WorldBookEntry, 'position' | 'priority' | 'scope'>);
 
   // Persona Editing State
-  const [editingPersonaId, setEditingPersonaId] = useState<string>('mesugaki');
+  const [editingPersonaId, setEditingPersonaId] = useState<string>('feiyu');
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
 
   // Deep Bangumi Data Enrichment State
@@ -377,9 +437,9 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
     [aiConfig.worldBookEntries],
   );
 
-  const selectedPersonaId = aiConfig.selectedPersonaId || 'mesugaki';
+  const selectedPersonaId = aiConfig.selectedPersonaId || 'feiyu';
   const selectedPersona = useMemo(
-    () => personas.find(p => p.id === selectedPersonaId) || personas[0] || AI_ROLES.mesugaki,
+    () => personas.find(p => p.id === selectedPersonaId) || personas[0] || AI_ROLES.feiyu,
     [personas, selectedPersonaId],
   );
 
@@ -400,15 +460,25 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
     [worldBookEntries],
   );
 
+  const buildCurrentReportPrompt = () =>
+    buildTasteReportPrompt(tiers, comments, selectedPersona.id, {
+      persona: selectedPersona,
+      worldBookEntries,
+      d0Prompt: aiConfig.d0Prompt || '',
+      gradingSystem,
+    });
+
   const assembledPrompt = useMemo(
     () =>
-      buildTasteReportPrompt(tiers, comments, selectedPersona.id, {
-        persona: selectedPersona,
-        worldBookEntries,
-        d0Prompt: aiConfig.d0Prompt || '',
-        gradingSystem,
-      }),
-    [tiers, comments, selectedPersona, worldBookEntries, aiConfig.d0Prompt, gradingSystem],
+      showStudioPanel && studioTab === 'preview'
+        ? buildTasteReportPrompt(tiers, comments, selectedPersona.id, {
+            persona: selectedPersona,
+            worldBookEntries,
+            d0Prompt: aiConfig.d0Prompt || '',
+            gradingSystem,
+          })
+        : '',
+    [showStudioPanel, studioTab, tiers, comments, selectedPersona, worldBookEntries, aiConfig.d0Prompt, gradingSystem],
   );
 
   const animeWithUserScoreByTitle = useMemo(() => {
@@ -568,8 +638,13 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
   };
 
   const parsedReportBlocks = useMemo(
-    () => parseReportIntoRichBlocks(activeReportText),
-    [activeReportText],
+    () =>
+      parseReportIntoRichBlocks(activeReportText).map(block =>
+        block.type === 'narrative'
+          ? { ...block, renderedHtml: formatMarkdownSegmentToHtml(block.markdown) }
+          : block,
+      ),
+    [activeReportText, animeByTitle, characterByName, selectedPersona.id, selectedPersona.avatarUrl],
   );
 
   // World Book Handlers
@@ -674,20 +749,25 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
     updateAiConfig(prev => {
       const remaining = normalizePersonasList(prev.personas).filter(p => p.id !== personaId);
       const nextSelected =
-        prev.selectedPersonaId === personaId ? 'mesugaki' : prev.selectedPersonaId;
+        prev.selectedPersonaId === personaId ? 'feiyu' : prev.selectedPersonaId;
       return {
         ...prev,
         selectedPersonaId: nextSelected,
         personas: remaining,
       };
     });
-    setEditingPersonaId('mesugaki');
+    setEditingPersonaId('feiyu');
   };
 
   const handleResetBuiltInPersona = (personaId: string) => {
     const def = (AI_ROLES as Record<string, AIRoleConfig>)[personaId];
     if (!def) return;
     handleUpdatePersona(personaId, { ...def });
+  };
+
+  const handleSyncFeiyuFromStudio = () => {
+    const studioPrompt = readStudioFeiyuPrompt() || FEIYU_DEFAULT_PERSONA_PROMPT;
+    handleUpdatePersona('feiyu', { prompt: normalizeReportMarkup(studioPrompt) });
   };
 
   // Fetch available models from the user's configured API BaseURL
@@ -975,7 +1055,8 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
       const replyStyle = selectedPersona.id === 'feiyu'
         ? '恢复简短聊天模式，通常一两句、不超过三行，不用 Markdown，不要重写或总结整份报告；主人明确追问细节时可以用几个短段落展开'
         : '100~280字左右';
-      const conversationPrompt = normalizeReportMarkup(`${assembledPrompt}\n\n---\n【已生成的评鉴报告】：\n${activeReportText}\n\n---\n【后续对话记录】：\n${updatedHistory
+      const basePrompt = assembledPrompt || buildCurrentReportPrompt();
+      const conversationPrompt = normalizeReportMarkup(`${basePrompt}\n\n---\n【已生成的评鉴报告】：\n${activeReportText}\n\n---\n【后续对话记录】：\n${updatedHistory
         .map(m => `${m.role === 'user' ? '用户' : selectedPersona.displayName}: ${m.content}`)
         .join('\n')}\n\n请继续以「${selectedPersona.displayName}」的人设直接回复用户的最新发言（保持人设语气，可自然引用作品《作品名》与【角色名】，${replyStyle}）：`);
 
@@ -1073,7 +1154,7 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
 
   const handleCopyPrompt = async () => {
     try {
-      await navigator.clipboard.writeText(assembledPrompt);
+      await navigator.clipboard.writeText(assembledPrompt || buildCurrentReportPrompt());
       setCopiedPrompt(true);
       setTimeout(() => setCopiedPrompt(false), 2000);
     } catch {
@@ -1532,6 +1613,18 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
                   </h4>
 
                   <div className="flex items-center gap-2">
+                    {editingPersona.id === 'feiyu' && (
+                      <button
+                        type="button"
+                        data-testid="sync-studio-feiyu-btn"
+                        onClick={handleSyncFeiyuFromStudio}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-xs text-sky-200 cursor-pointer"
+                        title="从小剧场的大肥鱼角色卡同步 Prompt"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>同步小剧场大肥鱼 Prompt</span>
+                      </button>
+                    )}
                     {editingPersona.isCustom ? (
                       <button
                         type="button"
@@ -1571,7 +1664,38 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-white/55 mb-1">头像图片 URL</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] text-white/55">头像图片 URL / 本地上传</label>
+                      <label className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.12] text-[10.5px] font-semibold text-white/85 cursor-pointer transition-colors">
+                        <Upload className="w-3 h-3" />
+                        <span>本地上传</span>
+                        <input
+                          type="file"
+                          accept="image/*,.gif"
+                          data-testid="persona-avatar-upload-input"
+                          className="hidden"
+                          onChange={async e => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            if (file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif')) {
+                              const reader = new FileReader();
+                              reader.onload = () => {
+                                if (typeof reader.result === 'string') {
+                                  handleUpdatePersona(editingPersona.id, { avatarUrl: reader.result });
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                              return;
+                            }
+                            const dataUrl = await compressImageFileToDataUrl(file, 480, 480, 0.88);
+                            if (dataUrl) {
+                              handleUpdatePersona(editingPersona.id, { avatarUrl: dataUrl });
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                     <input
                       type="text"
                       value={editingPersona.avatarUrl}
@@ -1905,7 +2029,7 @@ export const TasteReportSection: React.FC<TasteReportSectionProps> = ({
                   key={`narrative-${idx}`}
                   className="report-narrative"
                   dangerouslySetInnerHTML={{
-                    __html: formatMarkdownSegmentToHtml(block.markdown),
+                    __html: block.renderedHtml,
                   }}
                 />
               );

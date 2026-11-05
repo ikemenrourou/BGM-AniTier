@@ -92,6 +92,12 @@ export const StudioEntrance: React.FC<StudioEntranceProps> = ({
         { transform: focusTransform },
         { transform: transform(to.left, to.top, to.width / width, to.height / height) },
       ], flightDuration, 'cubic-bezier(0.35, 0, 0.2, 1)');
+      if (cancelled) return;
+      onPhaseChange('landing');
+      await animate([
+        { opacity: 1 },
+        { opacity: 0 },
+      ], 95, 'ease-out');
       if (!cancelled) onPhaseChange('settled');
     };
     void run().catch(() => { if (!cancelled) onPhaseChange('settled'); });

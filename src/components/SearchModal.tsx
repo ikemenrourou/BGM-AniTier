@@ -21,6 +21,7 @@ import {
   LETTER_TIER_SCORES,
   formatTierBadgeText,
   formatTierLabel,
+  createCustomWorkId,
 } from '../lib/tierLogic';
 import {
   searchBangumiAnime,
@@ -196,7 +197,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const file = imageFiles[i];
       const dataUrl = await compressImageFileToDataUrl(file);
       created.push({
-        id: Date.now() + i + Math.floor(Math.random() * 10000),
+        id: createCustomWorkId(i),
         title: extractTitleFromFileName(file.name),
         cover: dataUrl,
         category: customCategory,
@@ -242,7 +243,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     }
     setCustomError('');
     const newAnime: AnimeItem = {
-      id: Date.now(),
+      id: createCustomWorkId(0),
       title,
       cover: customCover.trim(),
       studio: customStudio.trim() || undefined,

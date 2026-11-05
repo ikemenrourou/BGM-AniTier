@@ -28,12 +28,12 @@ import {
   moveAnimeBetweenTiers,
   getBoardStats,
   formatTierBadgeText,
+  createCustomWorkId,
 } from './lib/tierLogic';
 import {
   DEFAULT_USER_BGM_TOKEN,
   extractTitleFromFileName,
   compressImageFileToDataUrl,
-  convertImageUrlToDataUrl,
   fetchBangumiDeepSubjectData,
 } from './lib/bangumiApi';
 import { DEFAULT_THEME_VERSION, getInitialThemeId, getThemeById } from './lib/themes';
@@ -54,10 +54,11 @@ import { BangumiSyncModal, type BgmSyncTabMode } from './components/BangumiSyncM
 import { PosterWallModal } from './components/PosterWallModal';
 import { AmbientBackgroundCanvas } from './components/AmbientBackgroundCanvas';
 import { RecordingStudioPage } from './components/RecordingStudioPage';
+import { Tv, BookOpen, Gamepad2, Github } from 'lucide-react';
 
 import { STORAGE_KEYS } from './lib/persistenceSchema';
 import { appStorage, flushStorage, importStorage } from './lib/appStorage';
-import { createBackup, parseBackup, embedBackupImages } from './lib/backup';
+import { createBackup, parseBackup } from './lib/backup';
 import { downloadBackup } from './components/StorageStatus';
 
 export function App() {
@@ -255,7 +256,7 @@ export function App() {
     };
   }, []);
 
-  // Automatically enrich ranked works on the board in the background (no manual button needed!)
+  // Automatically enrich ranked works on the board in the background (batched to avoid UI main-thread lag)
   useEffect(() => {
     if (isEnrichRunnerActiveRef.current) return;
 
@@ -284,8 +285,18 @@ export function App() {
 
     (async () => {
       try {
+        await new Promise(r => setTimeout(r, 900));
         let doneCount = 0;
         const batchSize = 2;
+        let pendingCommitItems: AnimeItem[] = [];
+
+        const flushPendingCommit = () => {
+          if (pendingCommitItems.length === 0 || isUnmountedRef.current) return;
+          const toCommit = pendingCommitItems;
+          pendingCommitItems = [];
+          setTiers(prev => mergeTierMetadata(prev, { '10': toCommit }));
+        };
+
         for (let i = 0; i < pendingItems.length; i += batchSize) {
           if (isUnmountedRef.current) break;
           const batch = pendingItems.slice(i, i + batchSize);
@@ -294,26 +305,30 @@ export function App() {
               try {
                 const enriched = await fetchBangumiDeepSubjectData(item);
                 if (!isUnmountedRef.current && enriched && enriched.id === item.id) {
-                  setTiers(prev => mergeTierMetadata(prev, { '10': [enriched] }));
+                  pendingCommitItems.push(enriched);
                 }
               } catch {
                 // Graceful fallback: keep existing basic item untouched
               } finally {
                 doneCount++;
-                if (!isUnmountedRef.current) {
-                  setAutoEnrichStatus({
-                    active: doneCount < pendingItems.length,
-                    done: doneCount,
-                    total: pendingItems.length,
-                  });
-                }
               }
             }),
           );
+          if (!isUnmountedRef.current) {
+            if (pendingCommitItems.length >= 8 || doneCount >= pendingItems.length) {
+              flushPendingCommit();
+            }
+            setAutoEnrichStatus({
+              active: doneCount < pendingItems.length,
+              done: doneCount,
+              total: pendingItems.length,
+            });
+          }
           if (i + batchSize < pendingItems.length) {
-            await new Promise(r => setTimeout(r, 120));
+            await new Promise(r => setTimeout(r, 160));
           }
         }
+        flushPendingCommit();
       } finally {
         isEnrichRunnerActiveRef.current = false;
         if (!isUnmountedRef.current) {
@@ -529,7 +544,7 @@ export function App() {
       const file = imageFiles[i];
       const dataUrl = await compressImageFileToDataUrl(file);
       newItems.push({
-        id: Date.now() + i + Math.floor(Math.random() * 10000),
+        id: createCustomWorkId(i),
         title: extractTitleFromFileName(file.name),
         cover: dataUrl,
         category: 'anime',
@@ -815,56 +830,63 @@ export function App() {
     showToast('已删除短评');
   };
 
+  const exportCategoryCounts = useMemo(() => {
+    let animeCount = 0;
+    let bookCount = 0;
+    let gameCount = 0;
+    const safeTiers = normalizeTierMap(tiers);
+    for (const score of ALL_TIER_SCORES) {
+      const items = safeTiers[String(score)] || [];
+      for (const item of items) {
+        if (item.category === 'book') bookCount++;
+        else if (item.category === 'game') gameCount++;
+        else animeCount++;
+      }
+    }
+    return {
+      anime: animeCount,
+      book: bookCount,
+      game: gameCount,
+      total: stats.totalAnime,
+      avg: stats.averageScore > 0 ? stats.averageScore.toFixed(2) : '0.00',
+    };
+  }, [tiers, stats]);
+
   const handleExportImage = async () => {
     if (!boardRef.current || isExportingImage) return;
     setIsExportingImage(true);
+    showToast('正在生成榜单长图...');
+
     try {
-      const hasAnyRankedInVisible = visibleTiers.some(
-        score => (tiers[String(score)] || []).length > 0,
-      );
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => setTimeout(resolve, 140));
 
       const dataUrl = await toPng(boardRef.current, {
-        cacheBust: true,
+        quality: 0.96,
         pixelRatio: 2,
-        backgroundColor: '#09090b',
-        filter: (node: HTMLElement) => {
-          if (
-            exportHideEmptyTiers &&
-            hasAnyRankedInVisible &&
-            node instanceof HTMLElement &&
-            node.dataset?.emptyTier === 'true'
-          ) {
-            return false;
-          }
-          return true;
-        },
+        backgroundColor: '#090a10',
+        cacheBust: true,
       });
+
       const link = document.createElement('a');
-      link.download = `${boardTitle || 'BGM-AniTier'}.png`;
+      link.download = `${(boardTitle || 'bgm-anitier').replace(/[\\/:*?"<>|]/g, '_')}-tierlist.png`;
       link.href = dataUrl;
       link.click();
-      showToast(
-        exportHideEmptyTiers
-          ? '已导出高清排行榜长图（已仅保留有作品的 Tier 行）'
-          : '已导出高清排行榜长图（完整保留全部 Tier 行）',
-      );
-    } catch (err) {
-      console.error('Image export failed:', err);
-      showToast('导出图片失败，请稍后重试');
+      showToast('已导出 Tier List 榜单长图');
+    } catch {
+      showToast('导出图片失败，部分外链图片可能受跨域限制');
     } finally {
       setIsExportingImage(false);
     }
   };
 
-  const handleExportJson = async () => {
+  const handleExportJson = () => {
     if (isExportingBackup) return;
     setIsExportingBackup(true);
     try {
-      // Snapshot before any network work so a long export cannot mix different edits.
       const snapshot = createBackup(appStorage.snapshot());
-      const { backup, externalImages } = await embedBackupImages(snapshot, convertImageUrlToDataUrl);
-      downloadBackup({ ...backup, externalImages }, (boardTitle || 'bgm-anitier') + '-all-in-one-backup.json');
-      showToast(externalImages ? '备份已导出；' + externalImages + ' 张外链图片未能内嵌，已保留原地址' : '全量备份已导出，含小剧场和图片；文件含密钥，请妥善保管');
+      downloadBackup(snapshot, (boardTitle || 'bgm-anitier') + '-all-in-one-backup.json');
+      showToast('全量备份已导出（本地上传图片已内嵌，外链保持原地址；含密钥请妥善保管）');
     } catch {
       showToast('导出失败，请重试；当前数据保留');
     } finally {
@@ -1031,8 +1053,89 @@ export function App() {
           }`}
         >
           {/* Tier List Board */}
-          <section id="board" ref={boardRef} className="flex-1 w-full min-w-0 space-y-5">
-            {visibleTiers.map(score => (
+          <section
+            id="board"
+            ref={boardRef}
+            className={`flex-1 w-full min-w-0 space-y-5 ${
+              isExportingImage
+                ? 'p-7 sm:p-9 rounded-[28px] bg-[#090a10] relative isolate overflow-hidden shadow-2xl'
+                : ''
+            }`}
+            style={
+              isExportingImage
+                ? {
+                    backgroundImage:
+                      useCustomBg && customBgUrl
+                        ? `linear-gradient(180deg, rgba(9,10,16,0.72) 0%, rgba(9,10,16,0.88) 100%), url(${customBgUrl})`
+                        : activeTheme.backgroundCss,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }
+                : undefined
+            }
+          >
+            {isExportingImage && (
+              <div
+                data-testid="tierlist-export-header"
+                className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 mb-2 border-b border-white/[0.08]"
+              >
+                <div>
+                  <div className="flex items-center gap-2 text-[10.5px] font-mono tracking-[0.2em] uppercase text-white/45 mb-2">
+                    <span>BGM ANITIER · TIER LIST VISUAL ARCHIVE</span>
+                    <span>·</span>
+                    <span>CURATED BY {bgmSyncConfig.nickname || 'ANITIER'}</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-[34px] font-black tracking-tight text-white leading-none">
+                    {boardTitle}
+                  </h1>
+                </div>
+
+                {/* Exact Unified Monochrome Glass Stat Capsule matching PosterWallModal */}
+                <div className="inline-flex flex-wrap items-center gap-1 p-1.5 rounded-2xl bg-white/[0.05] self-start md:self-auto">
+                  <div className="px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-white/85">
+                    <Tv className="w-3.5 h-3.5 text-white/65" />
+                    <span className="text-xs text-white/55">动画</span>
+                    <span className="text-sm font-extrabold text-white tabular-nums">
+                      {exportCategoryCounts.anime}
+                    </span>
+                  </div>
+
+                  <div className="w-[1px] h-4 bg-white/[0.08]" />
+
+                  <div className="px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-white/85">
+                    <BookOpen className="w-3.5 h-3.5 text-white/65" />
+                    <span className="text-xs text-white/55">书籍</span>
+                    <span className="text-sm font-extrabold text-white tabular-nums">
+                      {exportCategoryCounts.book}
+                    </span>
+                  </div>
+
+                  <div className="w-[1px] h-4 bg-white/[0.08]" />
+
+                  <div className="px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-white/85">
+                    <Gamepad2 className="w-3.5 h-3.5 text-white/65" />
+                    <span className="text-xs text-white/55">游戏</span>
+                    <span className="text-sm font-extrabold text-white tabular-nums">
+                      {exportCategoryCounts.game}
+                    </span>
+                  </div>
+
+                  <div className="px-3.5 py-1.5 rounded-xl bg-white text-zinc-950 flex items-center gap-2 ml-1 shadow-sm">
+                    <span className="text-xs font-extrabold tabular-nums">
+                      TOTAL {exportCategoryCounts.total}
+                    </span>
+                    <span className="text-[11px] font-mono text-zinc-600">
+                      AVG {exportCategoryCounts.avg}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(isExportingImage && exportHideEmptyTiers
+              ? visibleTiers.filter(score => (tiers[String(score)] || []).length > 0)
+              : visibleTiers
+            ).map(score => (
               <TierRow
                 key={score}
                 score={score}
@@ -1043,6 +1146,7 @@ export function App() {
                 commentedAnimeIds={commentedAnimeIds}
                 tierRowStyle={tierRowStyle}
                 tierRowOpacity={tierRowOpacity}
+                readOnlyStage={isExportingImage}
                 onAddClick={targetScore =>
                   setSearchModalState({ isOpen: true, targetScore })
                 }
@@ -1057,6 +1161,18 @@ export function App() {
                 onReturnToPool={animeId => handleMoveAnimeIntoPool(animeId)}
               />
             ))}
+
+            {isExportingImage && (
+              <div
+                data-testid="tierlist-export-footer"
+                className="relative z-10 mt-6 pt-4 border-t border-white/[0.07] flex items-center justify-between text-[11px] text-white/40 font-mono"
+              >
+                <span>BGM ANITIER · github.com/ikemenrourou/BGM-AniTier</span>
+                <span>
+                  {new Date().toISOString().slice(0, 10)} · {exportCategoryCounts.total} WORKS ARCHIVED
+                </span>
+              </div>
+            )}
           </section>
 
           {/* Sticky Side Candidate Pool for Video Recording / Batch Image Drop / BGM Sync */}
@@ -1143,6 +1259,27 @@ export function App() {
                 showToast(`已将《${anime.title}》的 AI 锐评金句采纳进个人简评`);
               }}
             />
+            {/* Project Footer with GitHub Link */}
+            <footer
+              data-testid="project-github-footer"
+              className="pt-6 pb-2 border-t border-white/[0.07] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/45"
+            >
+              <div className="flex items-center gap-2 font-mono">
+                <span className="font-bold text-white/70">BGM AniTier</span>
+                <span>·</span>
+                <span>个人动画 / 书籍 / 游戏鉴赏排榜与 AI 毒舌锐评小剧场</span>
+              </div>
+              <a
+                href="https://github.com/ikemenrourou/BGM-AniTier"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="project-github-link"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.1] text-white/80 hover:text-white font-mono text-xs transition-colors"
+              >
+                <Github className="w-3.5 h-3.5" />
+                <span>github.com/ikemenrourou/BGM-AniTier</span>
+              </a>
+            </footer>
           </>
         )}
           </main>

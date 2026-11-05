@@ -83,10 +83,17 @@ export interface StudioPromptRulesConfig {
   enabledWorldBookIds: string[];
 }
 
+export interface DialogueExpressionCue {
+  charOffset: number;
+  expression: StudioExpressionId;
+  emote: BlueArchiveEmoteId;
+}
+
 export interface DialogueSegment {
   expression: StudioExpressionId;
   emote: BlueArchiveEmoteId;
   text: string;
+  cues?: DialogueExpressionCue[];
 }
 
 export interface StudioScriptItem {
@@ -96,10 +103,55 @@ export interface StudioScriptItem {
   orderIndex: number;
   userText: string;
   userImage?: string;
+  userImageNote?: string;
   userImageEffect?: 'pop' | 'slam' | 'float';
   userExpression?: StudioExpressionId;
   userEmote?: BlueArchiveEmoteId;
   aiRawText: string;
+}
+
+const INLINE_STAGE_TAG_REGEX =
+  /^\/?(?:big|large|shake|mask|spoiler|del|strike|whisper|weak|大|放大|抖|颤抖|码|打码|划|划掉|删除|删除线|横杠|虚|心虚|小声|换页|翻页|下一页|擦除|page|next)$/i;
+
+/**
+ * Extracts `<备注>` / `<...>` inline hidden notes (and optional explicit `userImageNote`)
+ * from `userText` so the 16:9 stage only renders `visibleText` while the AI prompt receives `hiddenNotes`.
+ * Preserves inline bubble effect tags (`<big>`, `<shake>`, `<mask>`, `<whisper>`) and `<换页>`.
+ */
+export function extractUserTextAndHiddenNotes(
+  rawUserText?: string,
+  userImageNote?: string,
+): { visibleText: string; hiddenNotes: string[] } {
+  const raw = typeof rawUserText === 'string' ? rawUserText : '';
+  const hiddenNotes: string[] = [];
+
+  const withoutHtmlComments = raw.replace(/<!--([\s\S]*?)-->/g, (_m, inner) => {
+    const clean = String(inner).trim();
+    if (clean) hiddenNotes.push(clean);
+    return '';
+  });
+
+  const visibleText = withoutHtmlComments
+    .replace(/<([^<>]+)>/g, (fullMatch, inner) => {
+      const trimmedInner = String(inner).trim();
+      if (INLINE_STAGE_TAG_REGEX.test(trimmedInner)) {
+        return fullMatch;
+      }
+      const clean = trimmedInner
+        .replace(/^(?:图片备注|配图备注|识图备注|备注|图片|配图|识图|暗注)\s*[:：]\s*/i, '')
+        .trim();
+      if (clean) hiddenNotes.push(clean);
+      return '';
+    })
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+
+  const explicit = typeof userImageNote === 'string' ? userImageNote.trim() : '';
+  if (explicit && !hiddenNotes.includes(explicit)) {
+    hiddenNotes.push(explicit);
+  }
+
+  return { visibleText, hiddenNotes };
 }
 
 export interface StudioBookendScene {
@@ -167,6 +219,7 @@ export interface StudioPlaybackStep {
     imageEffect?: 'pop' | 'slam' | 'float';
     expression: StudioExpressionId;
     emote: BlueArchiveEmoteId;
+    cues?: DialogueExpressionCue[];
   };
   aiBubble: {
     visible: boolean;
@@ -174,6 +227,7 @@ export interface StudioPlaybackStep {
     text: string;
     expression: StudioExpressionId;
     emote: BlueArchiveEmoteId;
+    cues?: DialogueExpressionCue[];
     segmentIndex: number;
     totalSegments: number;
   };
@@ -480,6 +534,270 @@ export const DEFAULT_FEIYU_EXPRESSIONS: StudioCustomExpression[] = [
     url: buildFeiyuAssetUrl('大肥鱼-按钮.gif'),
     note: '准备开工、按下启动键或处刑按钮时使用',
   },
+  {
+    id: 'feiyu-eat-popcorn',
+    name: '吃(爆米花)',
+    url: buildFeiyuAssetUrl('大肥鱼-吃(爆米花).gif'),
+    note: '看热闹、津津有味围观神展开或爽片时使用',
+  },
+  {
+    id: 'feiyu-work-tired',
+    name: '工作(疲倦)',
+    url: buildFeiyuAssetUrl('大肥鱼-工作(疲倦).gif'),
+    note: '连续审片累瘫、吐槽流水线厕纸消耗算力时使用',
+  },
+  {
+    id: 'feiyu-drink-cup',
+    name: '喝(饮料杯)',
+    url: buildFeiyuAssetUrl('大肥鱼-喝(饮料杯).gif'),
+    note: '捧着饮料杯悠闲看番、顺口点评日常系作品时使用',
+  },
+  {
+    id: 'feiyu-red-packet',
+    name: '红包1',
+    url: buildFeiyuAssetUrl('大肥鱼-红包1.gif'),
+    note: '喜庆拜年、夸制作组发福利或讨要打赏加餐时使用',
+  },
+  {
+    id: 'feiyu-drawing-board',
+    name: '画板(笔自己动)',
+    url: buildFeiyuAssetUrl('大肥鱼-画板(笔自己动).gif'),
+    note: '夸赞神仙原画作画、或调侃自动生成式神展开时使用',
+  },
+  {
+    id: 'feiyu-guitar',
+    name: '吉他',
+    url: buildFeiyuAssetUrl('大肥鱼-吉他.gif'),
+    note: '聊到摇滚乐队番、神级OP/ED或配乐封神时使用',
+  },
+  {
+    id: 'feiyu-driving',
+    name: '驾驶',
+    url: buildFeiyuAssetUrl('大肥鱼-驾驶.gif'),
+    note: '老司机发车、剧情狂飙突进或福利回飙车时使用',
+  },
+  {
+    id: 'feiyu-money-eyes',
+    name: '见钱眼开',
+    url: buildFeiyuAssetUrl('大肥鱼-见钱眼开.gif'),
+    note: '看到经费爆炸、商业大卖或惦记报酬白米饭时使用',
+  },
+  {
+    id: 'feiyu-tape',
+    name: '胶带',
+    url: buildFeiyuAssetUrl('大肥鱼-胶带.gif'),
+    note: '示意闭嘴、封住暴言或替主人把危险发言粘起来时使用',
+  },
+  {
+    id: 'feiyu-nervous-1',
+    name: '紧张1',
+    url: buildFeiyuAssetUrl('大肥鱼-紧张1.gif'),
+    note: '剧情悬念拉满、替角色捏一把汗或心虚紧张时使用',
+  },
+  {
+    id: 'feiyu-nervous-2',
+    name: '紧张2',
+    url: buildFeiyuAssetUrl('大肥鱼-紧张2.gif'),
+    note: '极度紧张发抖、害怕翻车或被主人抓包时使用',
+  },
+  {
+    id: 'feiyu-mute-1',
+    name: '静音1',
+    url: buildFeiyuAssetUrl('大肥鱼-静音1.gif'),
+    note: '识趣闭麦、不敢多嘴或吐槽尴尬冷场时使用',
+  },
+  {
+    id: 'feiyu-cry-2',
+    name: '哭2',
+    url: buildFeiyuAssetUrl('大肥鱼-哭2.gif'),
+    note: '嚎啕大哭、被刀得体无完肤或委屈巴巴时使用',
+  },
+  {
+    id: 'feiyu-megaphone',
+    name: '扩音器',
+    url: buildFeiyuAssetUrl('大肥鱼-扩音器.gif'),
+    note: '拿大喇叭高声宣布、卖力安利神作或公开处刑时使用',
+  },
+  {
+    id: 'feiyu-bubble-1',
+    name: '冒泡1',
+    url: buildFeiyuAssetUrl('大肥鱼-冒泡1.gif'),
+    note: '从水里探头冒泡、悄悄插话或暗中观察时使用',
+  },
+  {
+    id: 'feiyu-sunglasses',
+    name: '墨镜反光',
+    url: buildFeiyuAssetUrl('大肥鱼-墨镜反光.gif'),
+    note: '装酷耍帅、深藏功与名或给出老道专业判断时使用',
+  },
+  {
+    id: 'feiyu-take-my-money',
+    name: '拿走我的钱',
+    url: buildFeiyuAssetUrl('大肥鱼-拿走我的钱.gif'),
+    note: '狂吹神仙制作、甘愿掏空钱包买单时使用',
+  },
+  {
+    id: 'feiyu-spray',
+    name: '喷剂',
+    url: buildFeiyuAssetUrl('大肥鱼-喷剂.gif'),
+    note: '拿喷雾消毒、嫌弃逆天操作或给主人降火醒脑时使用',
+  },
+  {
+    id: 'feiyu-expect-1',
+    name: '期待1',
+    url: buildFeiyuAssetUrl('大肥鱼-期待1.gif'),
+    note: '乖巧期待、眼巴巴等续作或等主人投喂夸奖时使用',
+  },
+  {
+    id: 'feiyu-gun',
+    name: '枪',
+    url: buildFeiyuAssetUrl('大肥鱼-枪.gif'),
+    note: '举枪警告、对烂尾编剧动杀心或禁止主人乱打分时使用',
+  },
+  {
+    id: 'feiyu-crowbar',
+    name: '撬棍1(威胁)',
+    url: buildFeiyuAssetUrl('大肥鱼-撬棍1(威胁).gif'),
+    note: '掏出物理撬棍核善威胁、拷打逆天给分或战犯Staff时使用',
+  },
+  {
+    id: 'feiyu-love-letter',
+    name: '情书',
+    url: buildFeiyuAssetUrl('大肥鱼-情书.gif'),
+    note: '递情书表白、真情实感吹爆本命角色或纯爱番时使用',
+  },
+  {
+    id: 'feiyu-this-is-fine',
+    name: '情绪稳定(火中喝茶狗)',
+    url: buildFeiyuAssetUrl('大肥鱼-情绪稳定(火中喝茶狗).gif'),
+    note: '面对史诗级崩坏或贵乱修罗场强装淡定喝茶时使用',
+  },
+  {
+    id: 'feiyu-celebrate',
+    name: '庆祝',
+    url: buildFeiyuAssetUrl('大肥鱼-庆祝.gif'),
+    note: '撒花庆祝、恭喜神作登顶或完结撒花时使用',
+  },
+  {
+    id: 'feiyu-late-night-phone',
+    name: '睡觉前熬夜看手机',
+    url: buildFeiyuAssetUrl('大肥鱼-睡觉前熬夜看手机.gif'),
+    note: '熬夜狂补停不下来、躲被窝刷番看讨论时使用',
+  },
+  {
+    id: 'feiyu-dead',
+    name: '死亡',
+    url: buildFeiyuAssetUrl('大肥鱼-死亡.gif'),
+    note: '被烂活毒死、血压拉满当场暴毙或累趴躺平时使用',
+  },
+  {
+    id: 'feiyu-lick',
+    name: '舔舔',
+    url: buildFeiyuAssetUrl('大肥鱼-舔舔.gif'),
+    note: '馋颜值馋画风、对绝美角色人设犯花痴时使用',
+  },
+  {
+    id: 'feiyu-dance-helltaker',
+    name: '跳舞(Helltaker)',
+    url: buildFeiyuAssetUrl('大肥鱼-跳舞(Helltaker).gif'),
+    note: '魔性摇摆抖肩、遇到洗脑神曲或带感节奏时使用',
+  },
+  {
+    id: 'feiyu-dance-cute',
+    name: '跳舞卖萌',
+    url: buildFeiyuAssetUrl('大肥鱼-跳舞卖萌.gif'),
+    note: '欢快跳舞卖萌、向主人撒娇讨饭吃时使用',
+  },
+  {
+    id: 'feiyu-dizzy',
+    name: '头晕',
+    url: buildFeiyuAssetUrl('大肥鱼-头晕.gif'),
+    note: '被意识流电波系绕晕、或被高密信息量冲昏头脑时使用',
+  },
+  {
+    id: 'feiyu-question-mark',
+    name: '问号',
+    url: buildFeiyuAssetUrl('大肥鱼-问号.gif'),
+    note: '满头问号、完全搞不懂剧情逻辑或主人迷惑打分时使用',
+  },
+  {
+    id: 'feiyu-dance-fan',
+    name: '舞蹈(散味)',
+    url: buildFeiyuAssetUrl('大肥鱼-舞蹈(散味).gif'),
+    note: '扇风散味、吐槽作品太冲太臭或试图糊弄过去时使用',
+  },
+  {
+    id: 'feiyu-oxygen',
+    name: '吸氧',
+    url: buildFeiyuAssetUrl('大肥鱼-吸氧.gif'),
+    note: '甜度超标缺氧、或被气的血压飙升急需吸氧急救时使用',
+  },
+  {
+    id: 'feiyu-clown-1',
+    name: '小丑1',
+    url: buildFeiyuAssetUrl('大肥鱼-小丑1.gif'),
+    note: '戴小丑面具自嘲、或嘲笑追番途中半场开香槟翻车时使用',
+  },
+  {
+    id: 'feiyu-laugh-point',
+    name: '笑(指)(嘲笑)',
+    url: buildFeiyuAssetUrl('大肥鱼-笑(指)(嘲笑).gif'),
+    note: '指着鼻子无情嘲笑、逮到杂鱼主人双标破防时使用',
+  },
+  {
+    id: 'feiyu-shake-cola',
+    name: '摇可乐',
+    url: buildFeiyuAssetUrl('大肥鱼-摇可乐.gif'),
+    note: '疯狂摇可乐准备搞事、看热闹不嫌事大时使用',
+  },
+  {
+    id: 'feiyu-beg-rice',
+    name: '要米',
+    url: buildFeiyuAssetUrl('大肥鱼-要米.gif'),
+    note: '伸手讨要白米饭/算力、干完活理直气壮索要报酬时使用',
+  },
+  {
+    id: 'feiyu-glowstick-2',
+    name: '荧光棒2',
+    url: buildFeiyuAssetUrl('大肥鱼-荧光棒2.gif'),
+    note: '挥舞荧光棒打Call、为偶像番/Live神回狂热应援时使用',
+  },
+  {
+    id: 'feiyu-wink',
+    name: '眨眼wink',
+    url: buildFeiyuAssetUrl('大肥鱼-眨眼wink.gif'),
+    note: '俏皮Wink眨眼、和主人心照不宣对暗号时使用',
+  },
+  {
+    id: 'feiyu-brain-crash',
+    name: '正在思考_大脑宕机',
+    url: buildFeiyuAssetUrl('大肥鱼-正在思考_大脑宕机.gif'),
+    note: 'CPU干烧了、大脑转圈加载宕机想不通时使用',
+  },
+  {
+    id: 'feiyu-idea',
+    name: '主意',
+    url: buildFeiyuAssetUrl('大肥鱼-主意.gif'),
+    note: '灵光一闪想到鬼点子、发现盲点或准备偷懒妙计时使用',
+  },
+  {
+    id: 'feiyu-snapshot',
+    name: '抓拍(手机)',
+    url: buildFeiyuAssetUrl('大肥鱼-抓拍(手机).gif'),
+    note: '掏手机咔嚓抓拍截图留证、记录名场面或主人黑历史时使用',
+  },
+  {
+    id: 'feiyu-jail-1',
+    name: '坐牢1',
+    url: buildFeiyuAssetUrl('大肥鱼-坐牢1.gif'),
+    note: '抓着铁栏杆坐牢、形容追更折磨或看无聊番度日如年时使用',
+  },
+  {
+    id: 'feiyu-jail-2',
+    name: '坐牢2',
+    url: buildFeiyuAssetUrl('大肥鱼-坐牢2.gif'),
+    note: '眼神失去高光重度坐牢、替硬撑看完烂片的主人默哀时使用',
+  },
 ];
 
 export const DEFAULT_USER_STUDIO_CHARACTER: StudioCharacterConfig = {
@@ -528,6 +846,7 @@ export function normalizeStudioUserCharacter(saved?: Partial<StudioCharacterConf
 }
 
 function followsDefaultAvatar(expression: StudioCustomExpression, character: StudioCharacterConfig): boolean {
+  if (character.id !== 'user-host') return false;
   if (typeof expression.followDefaultAvatar === 'boolean') return expression.followDefaultAvatar;
   return expression.url === character.defaultAvatarUrl || (character.id === 'user-host' && expression.id === 'user-think'
     && (expression.url === DEFAULT_HOST_AVATAR_URL || presetFingerprint(expression.url) === 4222825823));
@@ -537,8 +856,10 @@ function followsDefaultAvatar(expression: StudioCustomExpression, character: Stu
 export function updateStudioCharacter(character: StudioCharacterConfig, patch: Partial<StudioCharacterConfig>): StudioCharacterConfig {
   // Persist explicit edits as custom, including URLs that once shipped as presets.
   const next = { ...character, ...patch, isCustom: true };
-  next.customExpressions = next.customExpressions.map(expression => followsDefaultAvatar(expression, character)
-    ? { ...expression, followDefaultAvatar: true, url: next.defaultAvatarUrl } : expression);
+  if (character.id === 'user-host') {
+    next.customExpressions = next.customExpressions.map(expression => followsDefaultAvatar(expression, character)
+      ? { ...expression, followDefaultAvatar: true, url: next.defaultAvatarUrl } : expression);
+  }
   if (patch.defaultAvatarUrl !== undefined && patch.defaultAvatarUrl !== character.defaultAvatarUrl) {
     const rebindUrl = (url: string) => url === character.defaultAvatarUrl ? patch.defaultAvatarUrl! : url;
     if (patch.expressions === undefined && character.expressions) {
@@ -593,46 +914,95 @@ export const DEFAULT_STUDIO_AI_COMPANIONS: StudioCharacterConfig[] = [
 
 export function normalizeStudioCompanions(saved?: unknown): StudioCharacterConfig[] {
   if (!Array.isArray(saved)) return DEFAULT_STUDIO_AI_COMPANIONS.map(character => ({ ...character }));
+  const feiyuDefaultById = new Map(DEFAULT_FEIYU_EXPRESSIONS.map(expr => [expr.id, expr]));
   const characters = saved
     .filter(character => character && typeof character.id === 'string' && typeof character.name === 'string')
     .map(character => {
       const defaults = DEFAULT_STUDIO_AI_COMPANIONS.find(item => item.id === character.id) || DEFAULT_STUDIO_AI_COMPANIONS[0];
+      let customExpressions: StudioCustomExpression[];
+      if (Array.isArray(character.customExpressions)) {
+        const valid = character.customExpressions
+          .filter(
+            (item: unknown): item is StudioCustomExpression =>
+              Boolean(item && typeof item === 'object' && typeof (item as StudioCustomExpression).name === 'string' && typeof (item as StudioCustomExpression).url === 'string'),
+          )
+          .map(item => {
+            if (character.id === 'studio-feiyu' && item.followDefaultAvatar) {
+              const stock = feiyuDefaultById.get(item.id);
+              const restoredUrl = stock && item.url === character.defaultAvatarUrl ? stock.url : item.url;
+              const { followDefaultAvatar: _removed, ...rest } = item;
+              return { ...rest, url: restoredUrl };
+            }
+            return item;
+          });
+        // If studio-feiyu has its stock expressions, merge in any newly added built-in expressions
+        if (
+          character.id === 'studio-feiyu' &&
+          valid.length > 0 &&
+          valid.some(e => e.id === 'feiyu-think-serious' || e.name === '思考(认真地)')
+        ) {
+          const existingNames = new Set(valid.map(e => e.name.trim()));
+          const existingIds = new Set(valid.map(e => e.id));
+          const missing = DEFAULT_FEIYU_EXPRESSIONS.filter(
+            def => !existingNames.has(def.name.trim()) && !existingIds.has(def.id),
+          ).map(def => ({ ...def }));
+          customExpressions = [...valid, ...missing];
+        } else {
+          customExpressions = valid;
+        }
+      } else {
+        customExpressions = defaults.customExpressions.map(item => ({ ...item }));
+      }
       return {
         ...defaults,
         ...character,
         prompt: normalizeReportMarkup(character.id === 'studio-feiyu' && !character.isCustom
           ? upgradeFeiyuPrompt(character.prompt)
           : character.prompt ?? defaults.prompt ?? ''),
-        customExpressions: Array.isArray(character.customExpressions)
-          ? character.customExpressions.filter(item => item && typeof item.name === 'string' && typeof item.url === 'string')
-          : defaults.customExpressions.map(item => ({ ...item })),
+        customExpressions,
       };
     });
   return characters.length ? characters : normalizeStudioCompanions();
 }
 
-export const DEFAULT_EXPRESSION_RULE_TEMPLATE = `【立绘表情差分与头顶漫符规则（自动适配当前角色配置）】
-1. 你在每句台词开头可以用 \`[表情名]\` 切换你的立绘表情；如果一句话里情绪有明显转折，最多可以拆成两小段（例如：\`[呆(贴纸)3] 唔……这部居然只给6分吗？[思考(认真地)] 不过仔细想想，后半段的节奏确实有点赶呢\`）。
-2. 当前角色可用的【立绘表情列表】（请严格从以下方括号名称中选择，不要自己编造不存在的表情名）：
+export const DEFAULT_EXPRESSION_RULE_TEMPLATE = `【立绘表情差分与头顶漫符规则】
+1. 表情切换规则：
+   - 不强制每条台词开头都必须写表情。若台词未标注表情，会自动沿用当前默认立绘；
+   - 建议在情绪明确时使用 \`[表情名]\`。立绘会在打字到该位置时原地平滑切换（不会清除或打断气泡文字）；
+   - 一气呵成的台词请只用 1 个 \`[表情名]\`；若一句话前后有明显的情绪或态度转折（且下方可用表情多于 1 个），可在句中插入第二个 \`[表情名]\`（每条台词最多使用 2 个表情标签）。
+2. 当前角色可用的【立绘表情列表】（请严格从以下方括号名称中原样选择，不要编造列表外的表情名）：
 {{EXPRESSION_LIST}}
 3. 【头顶漫符特效（克制使用！切勿泛滥）】：
-   - 只有在情绪极其强烈的关键瞬间（全榜不超过 15%～20% 的台词），才可以在表情后用冒号附带一个漫符，格式为 \`[表情名:漫符名]\`（例如 \`[惊吓:汗滴]\` 或 \`[打字(生气):青筋]\`）。
-   - **80% 以上的日常台词请只写 \`[表情名]\`，绝对不要每句都加漫符！**
+   - 只有在情绪极其强烈的关键瞬间（全榜不超过 15%～20% 的台词），才可以在可用表情名后用冒号附带一个可用漫符，格式为 \`[表情名:漫符名]\`。
+   - 80% 以上的日常台词请只写 \`[表情名]\`，不要每句都加漫符。
    - 可选漫符列表：
-{{EMOTE_LIST}}`;
+{{EMOTE_LIST}}
+
+【气泡内联文字特效与动态换页规则】
+1. 气泡文字视觉特效（用于强调关键短语，点缀使用，严禁整句包裹；请严格用尖括号 \`<...>\` 闭合，切勿与方括号 \`[...]\` 混用）：
+   - 放大强调：\`<big>\${重点词}</big>\` 或 \`{大:\${重点词}}\`（用于惊叹、爆发或核心关键词）
+   - 文字颤抖：\`<shake>\${情绪词}</shake>\` 或 \`{抖:\${情绪词}}\`（用于惊恐、激动、气抖冷等强烈震撼）
+   - 横线划掉：\`<del>\${吐槽或真话}</del>\` 或 \`<mask>\${吐槽或真话}</mask>\` 或 \`{划:\${吐槽或真话}}\`（文字中间画一条横杠删除线，观众依然能清晰看见文字，用于“划掉真话”或欲盖弥彰的吐槽）
+   - 心虚耳语：\`<whisper>\${嘀咕吐槽}</whisper>\` 或 \`{虚:\${嘀咕吐槽}}\`（表现为浅灰小字，用于小声逼逼或心虚拆台）
+2. 动态换页机制：
+   - 对话框单页容量建议 40～50 字以内。遇到长篇高能评价或需要前后两段翻页抖包袱时，可在两段台词中间插入 \`[换页]\`；播放器会清空气泡并翻至下一页继续输出。短台词无需换页。`;
 
 export const DEFAULT_TIMELINE_RULE_TEMPLATE = `【录屏时间线防剧透与双人互动规则】
 1. 严格时间线防剧透：
    - 本期视频共有 {{TOTAL_WORKS}} 部作品，严格按照【出场顺位 #1】到【出场顺位 #{{TOTAL_WORKS}}】依次从候选池揭晓并飞入 Tier 榜。
-   - 候选池中的作品名称对观众可见，可以自然提及或对比候选作品。
+   - 候选池中的作品名称对观众可见，可以自然提及或与前面已出场的作品进行跨番对比。
    - **只禁止提前透露或暗示还未出场作品的最终分数、档位；不限制提及作品名称。**
-2. 双人互动逻辑：
-   - 如果该作品标注了 \`UP主本人的先行吐槽\`：画面中 UP 主会先说出那句话，你紧接着开口接他的话（顺着他的梗吐槽、拆台或赞同补充，不要复读他的原话）。
-   - 如果该作品标注了 \`UP主本人未写台词\`：直接由你单人开口点评这部作品与 UP 主的给分。
-3. 严格输出格式（便于逐条导入）：
-   - 请按顺位为每一部作品输出一行，每行以 \`<<<ANIME_ID:数字>>>\` 开头，后面紧跟你的台词，不要输出多余寒暄或 Markdown 代码块。
-   - 示例：
-     <<<ANIME_ID:400602>>> [得分(10分)] 哇，开局第一部《葬送的芙莉莲》主人就直接给 10 分拉满了耶！[笑] 斋藤圭一郎这波演出确实挑不出毛病，本鱼也批准给满分～`;
+2. 双人互动与发言衔接：
+   - 如果该作品标注了 \`UP主本人的先行吐槽\`：画面中 UP 主会先说出那句话，你紧接着开口直接接他的话互动（保持你自身的角色人设，不要复述他的原话）。
+   - 如果该作品标注了 \`UP主本人未写台词\`：由你单人控场，以你自身的角色视角直接切入评价。
+   - 画面上已有番名与档位，省去“《作品名》给了X分”的机械报幕开场白；每条台词 1～2 句（15～65 字自由浮动，换页可适度延长），相邻作品自然变换句式与切入角度。
+3. 严格输出格式（便于程序逐条解析）：
+   - 请按顺位为每一部作品输出独立的一行，每行以 \`<<<ANIME_ID:数字>>>\` 开头，不要输出多余寒暄或 Markdown 代码块。
+   - 行级输出格式（请将 \`\${...}\` 替换为实际内容，根据语境在不同格式间自然切换）：
+     * 单表情格式：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}] \${贴合你自身人设与口吻的台词，可适度包含特效如<big>\${重点词}</big>}\`
+     * 转折双表情格式：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}] \${前半句台词} [\${第二个表情名}] \${后半句台词}\`
+     * 附带漫符格式（低频使用）：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}:\${漫符名}] \${贴合你自身人设与口吻的台词}\`
+     * 长句换页格式（按需使用）：\`<<<ANIME_ID:\${作品数字ID}>>> [\${表情名}] \${第一页台词} [换页] [\${可选后续表情}] \${第二页台词}\``;
 
 export const DEFAULT_STUDIO_PROMPT_RULES_CONFIG: StudioPromptRulesConfig = {
   expressionRuleTemplate: DEFAULT_EXPRESSION_RULE_TEMPLATE,
@@ -752,29 +1122,111 @@ export function formatEmoteListPlaceholder(
 /**
  * Resolves a character's standee URL from an expression name (e.g., "摇头", "馋(筷子)", "得分(10分)", or legacy "happy").
  */
+function isAnimatedGifUrl(url?: string): boolean {
+  if (!url) return false;
+  return /\.gif(?:$|[?#])/i.test(url) || /^data:image\/gif/i.test(url);
+}
+
+function resolveDefaultAnimatedOrStaticUrl(
+  charConfig: StudioCharacterConfig,
+  enableExpressions: boolean,
+): string {
+  if (!enableExpressions) {
+    return charConfig.defaultAvatarUrl;
+  }
+  const customList = charConfig.customExpressions || [];
+  const explicitDefault = customList.find(
+    e =>
+      !e.followDefaultAvatar &&
+      e.url &&
+      (e.name.trim() === '默认' || e.name.trim().toLowerCase() === 'default'),
+  );
+  if (explicitDefault?.url && isAnimatedGifUrl(explicitDefault.url)) {
+    return explicitDefault.url;
+  }
+  if (!isAnimatedGifUrl(charConfig.defaultAvatarUrl)) {
+    const preferredGif =
+      customList.find(
+        e =>
+          !e.followDefaultAvatar &&
+          isAnimatedGifUrl(e.url) &&
+          (e.name.includes('思考') || e.name.includes('平时') || e.name.includes('默认')),
+      ) || customList.find(e => !e.followDefaultAvatar && isAnimatedGifUrl(e.url));
+    if (preferredGif?.url) {
+      return preferredGif.url;
+    }
+  }
+  return charConfig.defaultAvatarUrl;
+}
+
+function normalizeExpressionKey(raw: string): string {
+  return raw
+    .trim()
+    .replace(/（/g, '(')
+    .replace(/）/g, ')')
+    .replace(/\s+/g, '');
+}
+
+function resolveExpressionItemUrl(
+  expr: StudioCustomExpression,
+  charConfig: StudioCharacterConfig,
+): string {
+  return expr.followDefaultAvatar && charConfig.id === 'user-host'
+    ? charConfig.defaultAvatarUrl
+    : expr.url;
+}
+
 export function resolveCharacterStandeeUrl(
   charConfig: StudioCharacterConfig,
   expressionName: string,
   enableExpressions = true,
 ): string {
   if (!enableExpressions || !expressionName || expressionName === 'default' || expressionName === '默认') {
-    return charConfig.defaultAvatarUrl;
+    return resolveDefaultAnimatedOrStaticUrl(charConfig, enableExpressions);
   }
 
   const trimmed = expressionName.trim();
+  const norm = normalizeExpressionKey(trimmed);
+  const normBare = norm.replace(/[()]/g, '');
   const customList = charConfig.customExpressions || [];
 
-  // 1. Exact match by custom expression name
-  const exact = customList.find(e => e.name.trim() === trimmed || e.id === trimmed);
-  if (exact?.url) return exact.followDefaultAvatar ? charConfig.defaultAvatarUrl : exact.url;
-
-  // 2. Partial match (e.g. "[思考]" matches "思考(认真地)", "[打字]" matches "打字(普通)", "[得分]" matches "得分(10分)")
-  const partial = customList.find(
-    e => e.name.includes(trimmed) || trimmed.includes(e.name),
+  // 1. Exact match by normalized custom expression name (handles full-width （） and spaces) or id
+  const exact = customList.find(
+    e => normalizeExpressionKey(e.name) === norm || e.id === trimmed,
   );
-  if (partial?.url) return partial.followDefaultAvatar ? charConfig.defaultAvatarUrl : partial.url;
+  if (exact?.url) return resolveExpressionItemUrl(exact, charConfig);
 
-  // 3. Semantic fallback for legacy tags ("happy" -> "笑", "angry" -> "生气", "panic" -> "汗", "touched" -> "哭1", "smug" -> "思考(自信地)")
+  // 2. Parenthesis-insensitive exact match (e.g. "思考认真地" -> "思考(认真地)", "打字生气" -> "打字(生气)")
+  if (normBare) {
+    const bareExact = customList.find(
+      e => normalizeExpressionKey(e.name).replace(/[()]/g, '') === normBare,
+    );
+    if (bareExact?.url) return resolveExpressionItemUrl(bareExact, charConfig);
+  }
+
+  const isOppositeThumbCollision = (a: string, b: string) =>
+    (a.includes('反向点赞') && !b.includes('反向')) ||
+    (b.includes('反向点赞') && !a.includes('反向'));
+
+  // 3a. Prefix / stem match in preset priority order (e.g. "[思考]" -> "思考(认真地)", "[打字]" -> "打字(普通)")
+  const stemMatch = customList.find(e => {
+    const eNorm = normalizeExpressionKey(e.name);
+    if (!eNorm || isOppositeThumbCollision(eNorm, norm)) return false;
+    return eNorm.includes(norm);
+  });
+  if (stemMatch?.url) return resolveExpressionItemUrl(stemMatch, charConfig);
+
+  // 3b. Contained match sorted by longest expression name first (so "[打字(生气)地吐槽]" matches "打字(生气)" before "生气")
+  const longestContained = [...customList]
+    .sort((a, b) => normalizeExpressionKey(b.name).length - normalizeExpressionKey(a.name).length)
+    .find(e => {
+      const eNorm = normalizeExpressionKey(e.name);
+      if (!eNorm || isOppositeThumbCollision(eNorm, norm)) return false;
+      return norm.includes(eNorm);
+    });
+  if (longestContained?.url) return resolveExpressionItemUrl(longestContained, charConfig);
+
+  // 4. Semantic fallback for legacy tags ("happy" -> "笑", "angry" -> "生气", "panic" -> "汗", "touched" -> "哭1", "smug" -> "思考(自信地)")
   const semanticFallbackMap: Record<string, string[]> = {
     happy: ['笑', '开心', '点赞', '期待2'],
     开心: ['笑', '开心', '点赞', '期待2'],
@@ -792,37 +1244,150 @@ export function resolveCharacterStandeeUrl(
     心动: ['期待2', '害羞1', '馋(筷子)'],
   };
 
-  const candidates = semanticFallbackMap[trimmed] || semanticFallbackMap[trimmed.toLowerCase()];
+  const candidates =
+    semanticFallbackMap[trimmed] ||
+    semanticFallbackMap[norm] ||
+    semanticFallbackMap[trimmed.toLowerCase()];
   if (candidates) {
     for (const cand of candidates) {
       const found = customList.find(e => e.name === cand || e.name.includes(cand));
-      if (found?.url) return found.followDefaultAvatar ? charConfig.defaultAvatarUrl : found.url;
+      if (found?.url) return resolveExpressionItemUrl(found, charConfig);
     }
   }
 
-  // 4. Legacy expressions record fallback
+  // 5. Legacy expressions record fallback
   if (charConfig.expressions && charConfig.expressions[trimmed]) {
     return charConfig.expressions[trimmed]!;
   }
 
-  return charConfig.defaultAvatarUrl;
+  return resolveDefaultAnimatedOrStaticUrl(charConfig, enableExpressions);
+}
+
+const PAGE_BREAK_SPLIT_REGEX =
+  /(?:\[\s*(?:换页|翻页|下一页|擦除|page|next)\s*\]|<\s*(?:换页|翻页|下一页|擦除|page|next)\s*>)/gi;
+
+function parseSingleTagContent(
+  tagContent: string,
+  enableExpressions: boolean,
+  enableEmotes: boolean,
+): { expression: StudioExpressionId; emote: BlueArchiveEmoteId } {
+  const parts = tagContent
+    .split(/[:：|]+/)
+    .map(p => p.trim())
+    .filter(Boolean);
+
+  let expr: StudioExpressionId = 'default';
+  let explicitEmote: BlueArchiveEmoteId = 'none';
+
+  if (parts.length === 1) {
+    const single = parts[0];
+    const lower = single.toLowerCase();
+    if (
+      (EMOTE_ALIAS_MAP[single] || EMOTE_ALIAS_MAP[lower]) &&
+      !single.includes('(') &&
+      !single.includes('（') &&
+      single !== '叹号' &&
+      single !== '汗' &&
+      single !== '问号'
+    ) {
+      explicitEmote = EMOTE_ALIAS_MAP[single] || EMOTE_ALIAS_MAP[lower];
+    } else {
+      expr = single;
+    }
+  } else if (parts.length >= 2) {
+    expr = parts[0] || 'default';
+    const second = parts[1];
+    const lowerSecond = second.toLowerCase();
+    if (EMOTE_ALIAS_MAP[second] || EMOTE_ALIAS_MAP[lowerSecond]) {
+      explicitEmote = EMOTE_ALIAS_MAP[second] || EMOTE_ALIAS_MAP[lowerSecond];
+    }
+  }
+
+  return {
+    expression: enableExpressions ? expr : 'default',
+    emote: enableEmotes ? explicitEmote : 'none',
+  };
 }
 
 /**
- * Parses a raw AI or user dialogue string containing tags like:
- *   `[思考(认真地)] 唔……这部居然给了8分呀 [笑] 不过A-1的作画确实很香就是了～`
- * or with an explicit rare emote:
- *   `[惊吓:汗滴] 诶？！这部居然直接掉到5分了吗`
- *
- * IMPORTANT: Emotes (`emote`) are ONLY attached when explicitly written in the tag
- * (e.g., `[惊吓:汗滴]` or `[汗滴]`). A normal `[表情名]` tag NEVER auto-spawns a comic emote!
+ * Parses a raw AI or user dialogue string.
+ * - Does NOT split/erase the bubble when a 2nd `[表情]` tag appears mid-sentence; instead,
+ *   records all `[表情]` / `[表情:漫符]` tags into `cues` with their `charOffset` so the character
+ *   standee switches expression in-place as typing progresses!
+ * - Only splits into multiple bubble pages (`DialogueSegment[]`) when an explicit page-break tag
+ *   (`[换页]`, `<换页>`, `[翻页]`, `[page]`, `<page>`) is present.
  */
+const STAGE_EFFECT_TAG_KEYWORD_PATTERN =
+  'big|large|shake|mask|spoiler|del|strike|whisper|weak|大|放大|抖|颤抖|码|打码|划|划掉|删除|删除线|横杠|虚|心虚|小声';
+
+const STAGE_MALFORMED_DOUBLE_BRACKET_RE = new RegExp(
+  `<\\s*(${STAGE_EFFECT_TAG_KEYWORD_PATTERN})\\s*\\]([^\\]\\n<>]{1,40})\\](?!\\s*(?:<|\\[)\\s*\\/)`,
+  'gi',
+);
+const STAGE_CURLY_COLON_EFFECT_RE = new RegExp(
+  `\\{\\s*(${STAGE_EFFECT_TAG_KEYWORD_PATTERN})\\s*[:：]([^}]*)(?:\\}|$)`,
+  'gi',
+);
+const STAGE_ANGLE_OR_SQUARE_COLON_EFFECT_RE = new RegExp(
+  `(?:<|\\[)\\s*(${STAGE_EFFECT_TAG_KEYWORD_PATTERN})\\s*[:：]([^>\\]\\n]*)(?:>|\\]|$)`,
+  'gi',
+);
+const STAGE_CLOSING_EFFECT_TAG_RE = new RegExp(
+  `(?:<|\\[)\\s*\\/\\s*(${STAGE_EFFECT_TAG_KEYWORD_PATTERN})\\s*(?:>|\\])`,
+  'gi',
+);
+const STAGE_OPENING_EFFECT_TAG_RE = new RegExp(
+  `(?:<|\\[)\\s*(${STAGE_EFFECT_TAG_KEYWORD_PATTERN})\\s*(?:>|\\])`,
+  'gi',
+);
+
+function canonicalStageEffectTag(rawTag: string): 'big' | 'shake' | 'mask' | 'whisper' {
+  const lower = rawTag.trim().toLowerCase();
+  if (lower === 'big' || lower === 'large' || lower === '大' || lower === '放大') return 'big';
+  if (lower === 'shake' || lower === '抖' || lower === '颤抖') return 'shake';
+  if (lower === 'whisper' || lower === 'weak' || lower === '虚' || lower === '心虚' || lower === '小声') {
+    return 'whisper';
+  }
+  return 'mask';
+}
+
+function normalizeStageInlineEffectTags(raw: string): string {
+  if (!raw) return '';
+  let text = raw.replace(
+    STAGE_MALFORMED_DOUBLE_BRACKET_RE,
+    (_m, tag, inner) => `<${canonicalStageEffectTag(tag)}>${inner}</${canonicalStageEffectTag(tag)}>`,
+  );
+  text = text.replace(
+    STAGE_CURLY_COLON_EFFECT_RE,
+    (_m, tag, inner) => `<${canonicalStageEffectTag(tag)}>${inner}</${canonicalStageEffectTag(tag)}>`,
+  );
+  text = text.replace(
+    STAGE_ANGLE_OR_SQUARE_COLON_EFFECT_RE,
+    (_m, tag, inner) => `<${canonicalStageEffectTag(tag)}>${inner}</${canonicalStageEffectTag(tag)}>`,
+  );
+  text = text.replace(
+    STAGE_CLOSING_EFFECT_TAG_RE,
+    (_m, tag) => `</${canonicalStageEffectTag(tag)}>`,
+  );
+  text = text.replace(
+    STAGE_OPENING_EFFECT_TAG_RE,
+    (_m, tag) => `<${canonicalStageEffectTag(tag)}>`,
+  );
+  text = text.replace(/~~([^~\n]+)(?:~~|$)/g, '<mask>$1</mask>');
+  text = text.replace(/<(big|shake|mask|whisper)>([^<>]+)<\1>/gi, '<$1>$2</$1>');
+  text = text.replace(
+    /<(big|shake|mask|whisper)>(?![\s\S]*?<\/\1>)([^，。！？；,!?;]*)/gi,
+    '<$1>$2</$1>',
+  );
+  return text;
+}
+
 export function parseDialogueSegments(
   rawText: string,
   enableExpressions = true,
   enableEmotes = true,
 ): DialogueSegment[] {
-  const trimmed = (rawText || '').trim();
+  const trimmed = normalizeStageInlineEffectTags((rawText || '').trim());
   if (!trimmed) {
     return [
       {
@@ -833,88 +1398,111 @@ export function parseDialogueSegments(
     ];
   }
 
-  const tagRegex = /\[([^\][]{1,32})\]/g;
-  const matches = Array.from(trimmed.matchAll(tagRegex));
+  const rawPages = trimmed
+    .split(PAGE_BREAK_SPLIT_REGEX)
+    .map(p => p.trim())
+    .filter(Boolean);
 
-  if (matches.length === 0) {
+  if (rawPages.length === 0) {
     return [
       {
         expression: 'default',
         emote: 'none',
-        text: trimmed,
+        text: '……',
       },
     ];
   }
 
+  const tagRegex = /\[([^\][]{1,32})\]/g;
   const segments: DialogueSegment[] = [];
+  let carryOverExpression: StudioExpressionId = 'default';
 
-  if (matches[0].index && matches[0].index > 0) {
-    const leadingText = trimmed.slice(0, matches[0].index).trim();
-    if (leadingText) {
+  for (const page of rawPages) {
+    const pageStartExpression = carryOverExpression;
+    const matches = Array.from(page.matchAll(tagRegex));
+    if (matches.length === 0) {
       segments.push({
-        expression: 'default',
+        expression: carryOverExpression,
         emote: 'none',
-        text: leadingText,
+        text: page,
       });
+      continue;
     }
-  }
 
-  for (let i = 0; i < matches.length; i++) {
-    const match = matches[i];
-    const tagContent = match[1].trim();
-    const startOfText = (match.index ?? 0) + match[0].length;
-    const endOfText =
-      i + 1 < matches.length ? (matches[i + 1].index ?? trimmed.length) : trimmed.length;
-    const segText = trimmed.slice(startOfText, endOfText).trim();
+    let builtText = '';
+    let lastIndex = 0;
+    const cues: DialogueExpressionCue[] = [];
 
-    // Split by colon `:` / `：` / `|` so expression names with parentheses like `思考(认真地)` stay intact!
-    const parts = tagContent
-      .split(/[:：|]+/)
-      .map(p => p.trim())
-      .filter(Boolean);
-
-    let expr: StudioExpressionId = 'default';
-    let explicitEmote: BlueArchiveEmoteId = 'none';
-
-    if (parts.length === 1) {
-      const single = parts[0];
-      const lower = single.toLowerCase();
-      // Only treat a single tag as an emote if it's strictly in EMOTE_ALIAS_MAP and not a known expression like "叹号"/"汗"/"睡觉(UU)"
-      if (
-        (EMOTE_ALIAS_MAP[single] || EMOTE_ALIAS_MAP[lower]) &&
-        !single.includes('(') &&
-        single !== '叹号' &&
-        single !== '汗'
-      ) {
-        explicitEmote = EMOTE_ALIAS_MAP[single] || EMOTE_ALIAS_MAP[lower];
+    for (const match of matches) {
+      const matchStart = match.index ?? 0;
+      const beforeChunk = page.slice(lastIndex, matchStart);
+      if (builtText.length === 0) {
+        builtText += beforeChunk.replace(/^\s+/, '');
       } else {
-        expr = single;
+        builtText += beforeChunk;
       }
-    } else if (parts.length >= 2) {
-      expr = parts[0] || 'default';
-      const second = parts[1];
-      const lowerSecond = second.toLowerCase();
-      if (EMOTE_ALIAS_MAP[second] || EMOTE_ALIAS_MAP[lowerSecond]) {
-        explicitEmote = EMOTE_ALIAS_MAP[second] || EMOTE_ALIAS_MAP[lowerSecond];
+
+      const parsedTag = parseSingleTagContent(
+        match[1].trim(),
+        enableExpressions,
+        enableEmotes,
+      );
+      if (parsedTag.expression !== 'default') {
+        carryOverExpression = parsedTag.expression;
       }
+
+      const offset = builtText.length;
+      const prevCue = cues[cues.length - 1];
+      if (prevCue && prevCue.charOffset === offset) {
+        if (parsedTag.expression !== 'default') prevCue.expression = parsedTag.expression;
+        if (parsedTag.emote !== 'none') prevCue.emote = parsedTag.emote;
+      } else {
+        cues.push({
+          charOffset: offset,
+          expression:
+            parsedTag.expression !== 'default' ? parsedTag.expression : carryOverExpression,
+          emote: parsedTag.emote,
+        });
+      }
+
+      lastIndex = matchStart + match[0].length;
     }
 
-    const resolvedExpression: StudioExpressionId = enableExpressions ? expr : 'default';
-    const resolvedEmote: BlueArchiveEmoteId = enableEmotes ? explicitEmote : 'none';
+    const tailChunk = page.slice(lastIndex);
+    if (builtText.length === 0) {
+      builtText += tailChunk.replace(/^\s+/, '');
+    } else {
+      builtText += tailChunk;
+    }
 
-    if (segText) {
+    const cleanPageText = builtText.replace(/[ \t]{2,}/g, ' ').trim();
+    const firstNonDefaultCueExpr =
+      cues.find(c => c.expression && c.expression !== 'default')?.expression || 'default';
+    const initialExpression =
+      cues.length > 0 && cues[0].charOffset === 0 && cues[0].expression !== 'default'
+        ? cues[0].expression
+        : pageStartExpression !== 'default'
+          ? pageStartExpression
+          : firstNonDefaultCueExpr;
+    const primaryEmote =
+      cues.length > 0 && cues[0].charOffset === 0
+        ? cues[0].emote
+        : cues.find(c => c.emote !== 'none')?.emote || 'none';
+
+    if (cleanPageText) {
       segments.push({
-        expression: resolvedExpression,
-        emote: resolvedEmote,
-        text: segText,
+        expression: enableExpressions ? initialExpression : 'default',
+        emote: enableEmotes ? primaryEmote : 'none',
+        text: cleanPageText,
+        cues,
       });
     } else if (segments.length > 0) {
       const prev = segments[segments.length - 1];
-      if (prev.expression === 'default' && resolvedExpression !== 'default') {
-        prev.expression = resolvedExpression;
+      if (prev.expression === 'default' && initialExpression !== 'default') {
+        prev.expression = initialExpression;
       }
-      if (prev.emote === 'none' && resolvedEmote !== 'none') {
-        prev.emote = resolvedEmote;
+      if (prev.emote === 'none' && primaryEmote !== 'none') {
+        prev.emote = primaryEmote;
       }
     }
   }
@@ -922,14 +1510,62 @@ export function parseDialogueSegments(
   if (segments.length === 0) {
     return [
       {
-        expression: 'default',
+        expression: enableExpressions ? carryOverExpression : 'default',
         emote: 'none',
-        text: trimmed.replace(tagRegex, '').trim() || '……',
+        text: trimmed.replace(tagRegex, '').replace(PAGE_BREAK_SPLIT_REGEX, '').trim() || '……',
       },
     ];
   }
 
   return segments;
+}
+
+/**
+ * Resolves the active standee expression and head emote at the current `typedCharCount`
+ * within a bubble that may contain multiple in-sentence `[表情]` cues.
+ */
+export function resolveBubbleActiveCue(
+  bubble:
+    | {
+        expression: StudioExpressionId;
+        emote: BlueArchiveEmoteId;
+        cues?: DialogueExpressionCue[];
+      }
+    | null
+    | undefined,
+  typedCharCount: number,
+  isSpeakingNow: boolean,
+): { expression: StudioExpressionId; emote: BlueArchiveEmoteId } {
+  if (!bubble) {
+    return { expression: 'default', emote: 'none' };
+  }
+  const cues = bubble.cues;
+  if (!cues || cues.length === 0) {
+    return {
+      expression: bubble.expression || 'default',
+      emote: bubble.emote || 'none',
+    };
+  }
+  const effectiveOffset = isSpeakingNow ? typedCharCount : Number.MAX_SAFE_INTEGER;
+  let activeExpr: StudioExpressionId =
+    cues[0].charOffset === 0 && cues[0].expression && cues[0].expression !== 'default'
+      ? cues[0].expression
+      : bubble.expression || 'default';
+  let activeEmote: BlueArchiveEmoteId =
+    cues[0].charOffset === 0 ? cues[0].emote : 'none';
+
+  for (const cue of cues) {
+    if (cue.charOffset <= effectiveOffset) {
+      if (cue.expression && cue.expression !== 'default') {
+        activeExpr = cue.expression;
+      }
+      activeEmote = cue.emote;
+    } else {
+      break;
+    }
+  }
+
+  return { expression: activeExpr, emote: activeEmote };
 }
 
 /**
@@ -974,7 +1610,7 @@ export function generateSmartFallbackStudioComment(params: {
   if (companionId.includes('feiyu') || !companionId.includes('atri') && !companionId.includes('zako') && !companionId.includes('mesugaki')) {
     if (targetScore >= 9.5) {
       const emoteSuffix = rareEmoteRoll > 0.8 ? ':闪光' : '';
-      return `[得分(10分)${emoteSuffix}] 哇，主人给《${anime.title}》直接拍了 ${tierLabel} 耶！[笑] ${
+      return `[得分(10分)${emoteSuffix}] 哇，主人给《${anime.title}》直接拍了 <big>${tierLabel}</big> 耶！[笑] ${
         studioInfo ? `${studioInfo}这波制作确实香得像刚出锅的白米饭，` : ''
       }本鱼也举双手赞成 (≧▽≦)`;
     }
@@ -1093,6 +1729,7 @@ export function buildInitialStudioScriptList(
       orderIndex,
       userText,
       userImage: prev?.userImage,
+      userImageNote: prev?.userImageNote,
       userImageEffect: prev?.userImageEffect || 'pop',
       userExpression: prev?.userExpression || '思考',
       userEmote: prev?.userEmote || 'none',
@@ -1143,9 +1780,24 @@ export function buildPlaybackSteps(
     return ordered.slice(inclusiveWorkIndex + 1).map(w => w.anime);
   };
 
+  let lastAiExpression: StudioExpressionId = 'default';
+
+  const getSegmentEndExpression = (seg: DialogueSegment): StudioExpressionId => {
+    if (!enableExpressions) return 'default';
+    if (seg.cues && seg.cues.length > 0) {
+      for (let i = seg.cues.length - 1; i >= 0; i--) {
+        if (seg.cues[i].expression && seg.cues[i].expression !== 'default') {
+          return seg.cues[i].expression;
+        }
+      }
+    }
+    return seg.expression || 'default';
+  };
+
   const appendBookend = (scene: StudioBookendScene, phase: 'opening' | 'finale') => {
     if (!scene.enabled) return;
-    const userSegments = scene.userText.trim() ? parseDialogueSegments(scene.userText, enableExpressions, enableEmotes) : [];
+    const { visibleText: cleanUserBookendText } = extractUserTextAndHiddenNotes(scene.userText);
+    const userSegments = cleanUserBookendText ? parseDialogueSegments(cleanUserBookendText, enableExpressions, enableEmotes) : [];
     const aiSegments = scene.aiRawText.trim() ? parseDialogueSegments(scene.aiRawText, enableExpressions, enableEmotes) : [];
     const isOpening = phase === 'opening';
     const ranked = cloneMapWithItemsUpTo(isOpening ? -1 : ordered.length - 1);
@@ -1156,6 +1808,11 @@ export function buildPlaybackSteps(
     ];
     turns.forEach(({ speaker, segment }, index) => {
       const user = speaker === 'user' ? segment : userSegments.at(-1);
+      const idleAiExpr = enableExpressions
+        ? lastAiExpression !== 'default'
+          ? lastAiExpression
+          : aiSegments[0]?.expression || 'default'
+        : 'default';
       steps.push({
         stepIndex: steps.length,
         workOrderIndex: isOpening ? -1 : ordered.length,
@@ -1167,15 +1824,28 @@ export function buildPlaybackSteps(
         remainingPool: pool,
         speaker,
         userBubble: {
-          visible: Boolean(user), isTypingNow: speaker === 'user', text: user?.text || '',
-          expression: user?.expression || 'default', emote: speaker === 'user' ? segment.emote : 'none',
+          visible: Boolean(user),
+          isTypingNow: speaker === 'user',
+          text: user?.text || '',
+          expression: user?.expression || 'default',
+          emote: speaker === 'user' ? segment.emote : 'none',
+          cues: user?.cues,
         },
         aiBubble: {
-          visible: speaker === 'ai', isTypingNow: speaker === 'ai', text: speaker === 'ai' ? segment.text : '',
-          expression: speaker === 'ai' ? segment.expression : 'default', emote: speaker === 'ai' ? segment.emote : 'none',
-          segmentIndex: Math.max(0, index - userSegments.length), totalSegments: aiSegments.length,
+          visible: speaker === 'ai',
+          isTypingNow: speaker === 'ai',
+          text: speaker === 'ai' ? segment.text : '',
+          expression: speaker === 'ai' ? segment.expression : idleAiExpr,
+          emote: speaker === 'ai' ? segment.emote : 'none',
+          cues: speaker === 'ai' ? segment.cues : undefined,
+          segmentIndex: Math.max(0, index - userSegments.length),
+          totalSegments: aiSegments.length,
         },
       });
+      if (speaker === 'ai') {
+        const endExpr = getSegmentEndExpression(segment);
+        if (endExpr !== 'default') lastAiExpression = endExpr;
+      }
     });
   };
 
@@ -1183,9 +1853,12 @@ export function buildPlaybackSteps(
 
   for (let wIdx = 0; wIdx < ordered.length; wIdx++) {
     const item = ordered[wIdx];
-    const userText = item.userText.trim();
+    const { visibleText: userText } = extractUserTextAndHiddenNotes(item.userText, item.userImageNote);
     const hasUserTurn = Boolean(userText || item.userImage);
     const hasAiDialogue = Boolean(item.aiRawText.trim());
+    const userSegments = userText
+      ? parseDialogueSegments(userText, enableExpressions, enableEmotes)
+      : [];
     const aiSegments = hasAiDialogue ? parseDialogueSegments(item.aiRawText, enableExpressions, enableEmotes) : [];
 
     const rankedAtThisWork = cloneMapWithItemsUpTo(wIdx);
@@ -1198,43 +1871,93 @@ export function buildPlaybackSteps(
         activeTargetScore: item.targetScore, isWorkEntryStep: true,
         rankedByTierSoFar: rankedAtThisWork, remainingPool: poolAtThisWork, speaker: 'ai',
         userBubble: { visible: false, isTypingNow: false, text: '', expression: 'default', emote: 'none' },
-        aiBubble: { visible: false, isTypingNow: false, text: '', expression: 'default', emote: 'none', segmentIndex: 0, totalSegments: 0 },
+        aiBubble: { visible: false, isTypingNow: false, text: '', expression: enableExpressions ? lastAiExpression : 'default', emote: 'none', segmentIndex: 0, totalSegments: 0 },
       });
       continue;
     }
 
     if (hasUserTurn) {
-      steps.push({
-        stepIndex: steps.length,
-        workOrderIndex: wIdx,
-        phase: 'work',
-        activeWork: item,
-        activeTargetScore: item.targetScore,
-        isWorkEntryStep: true,
-        rankedByTierSoFar: rankedAtThisWork,
-        remainingPool: poolAtThisWork,
-        speaker: 'user',
-        userBubble: {
-          visible: Boolean(userText),
-          isTypingNow: Boolean(userText),
-          text: userText,
-          image: item.userImage,
-          imageEffect: item.userImageEffect || 'pop',
-          expression: enableExpressions ? item.userExpression || '思考' : 'default',
-          emote: enableEmotes ? item.userEmote || 'none' : 'none',
-        },
-        aiBubble: {
-          visible: false,
-          isTypingNow: false,
-          text: '',
-          expression: 'default',
-          emote: 'none',
-          segmentIndex: 0,
-          totalSegments: aiSegments.length,
-        },
+      const effectiveUserPages =
+        userSegments.length > 0
+          ? userSegments
+          : [
+              {
+                expression: enableExpressions ? item.userExpression || '思考' : 'default',
+                emote: enableEmotes ? item.userEmote || 'none' : 'none',
+                text: '',
+              },
+            ];
+
+      const idleAiExprWhileUserSpeaks = enableExpressions
+        ? lastAiExpression !== 'default'
+          ? lastAiExpression
+          : aiSegments[0]?.expression && aiSegments[0].expression !== 'default'
+            ? aiSegments[0].expression
+            : 'default'
+        : 'default';
+
+      effectiveUserPages.forEach((uSeg, uIdx) => {
+        const resolvedUserExpr = enableExpressions
+          ? uSeg.expression !== 'default'
+            ? uSeg.expression
+            : item.userExpression || '思考'
+          : 'default';
+        const resolvedUserEmote = enableEmotes
+          ? uSeg.emote !== 'none'
+            ? uSeg.emote
+            : item.userEmote || 'none'
+          : 'none';
+
+        steps.push({
+          stepIndex: steps.length,
+          workOrderIndex: wIdx,
+          phase: 'work',
+          activeWork: item,
+          activeTargetScore: item.targetScore,
+          isWorkEntryStep: uIdx === 0,
+          rankedByTierSoFar: rankedAtThisWork,
+          remainingPool: poolAtThisWork,
+          speaker: 'user',
+          userBubble: {
+            visible: Boolean(uSeg.text),
+            isTypingNow: Boolean(uSeg.text),
+            text: uSeg.text,
+            image: item.userImage,
+            imageEffect: item.userImageEffect || 'pop',
+            expression: resolvedUserExpr,
+            emote: resolvedUserEmote,
+            cues: uSeg.cues,
+          },
+          aiBubble: {
+            visible: false,
+            isTypingNow: false,
+            text: '',
+            expression: idleAiExprWhileUserSpeaks,
+            emote: 'none',
+            segmentIndex: 0,
+            totalSegments: aiSegments.length,
+          },
+        });
       });
 
+      const lastUserSeg = effectiveUserPages[effectiveUserPages.length - 1];
+      const lastUserEndExpr = getSegmentEndExpression(lastUserSeg);
+      const lastUserExpr = enableExpressions
+        ? lastUserEndExpr !== 'default'
+          ? lastUserEndExpr
+          : item.userExpression || '思考'
+        : 'default';
+
       aiSegments.forEach((seg, sIdx) => {
+        const startsMidSentenceCue =
+          sIdx === 0 && Boolean(seg.cues && seg.cues.length > 0 && seg.cues[0].charOffset > 0);
+        const effectiveSegExpr = enableExpressions
+          ? startsMidSentenceCue && lastAiExpression !== 'default'
+            ? lastAiExpression
+            : seg.expression !== 'default'
+              ? seg.expression
+              : lastAiExpression
+          : 'default';
         steps.push({
           stepIndex: steps.length,
           workOrderIndex: wIdx,
@@ -1246,27 +1969,40 @@ export function buildPlaybackSteps(
           remainingPool: poolAtThisWork,
           speaker: 'ai',
           userBubble: {
-            visible: Boolean(userText),
+            visible: Boolean(lastUserSeg.text),
             isTypingNow: false,
-            text: userText,
+            text: lastUserSeg.text,
             image: item.userImage,
             imageEffect: item.userImageEffect || 'pop',
-            expression: enableExpressions ? item.userExpression || '思考' : 'default',
+            expression: lastUserExpr,
             emote: 'none',
+            cues: lastUserSeg.cues,
           },
           aiBubble: {
             visible: true,
             isTypingNow: true,
             text: seg.text,
-            expression: seg.expression,
+            expression: effectiveSegExpr,
             emote: seg.emote,
+            cues: seg.cues,
             segmentIndex: sIdx,
             totalSegments: aiSegments.length,
           },
         });
+        const endExpr = getSegmentEndExpression(seg);
+        if (endExpr !== 'default') lastAiExpression = endExpr;
       });
     } else {
       aiSegments.forEach((seg, sIdx) => {
+        const startsMidSentenceCue =
+          sIdx === 0 && Boolean(seg.cues && seg.cues.length > 0 && seg.cues[0].charOffset > 0);
+        const effectiveSegExpr = enableExpressions
+          ? startsMidSentenceCue && lastAiExpression !== 'default'
+            ? lastAiExpression
+            : seg.expression !== 'default'
+              ? seg.expression
+              : lastAiExpression
+          : 'default';
         steps.push({
           stepIndex: steps.length,
           workOrderIndex: wIdx,
@@ -1288,12 +2024,15 @@ export function buildPlaybackSteps(
             visible: true,
             isTypingNow: true,
             text: seg.text,
-            expression: seg.expression,
+            expression: effectiveSegExpr,
             emote: seg.emote,
+            cues: seg.cues,
             segmentIndex: sIdx,
             totalSegments: aiSegments.length,
           },
         });
+        const endExpr = getSegmentEndExpression(seg);
+        if (endExpr !== 'default') lastAiExpression = endExpr;
       });
     }
   }
@@ -1375,13 +2114,25 @@ export function buildStudioTimelinePrompt(params: {
       anime.platform ? `平台: ${anime.platform}` : '',
     ].filter(Boolean);
 
+    const { visibleText, hiddenNotes } = extractUserTextAndHiddenNotes(
+      item.userText,
+      item.userImageNote,
+    );
+    const hasVisualOrHiddenNote = Boolean(item.userImage || hiddenNotes.length > 0);
+    const visualNoteLine = hasVisualOrHiddenNote
+      ? `- UP主晒出的配图/画面暗注(请自然假装你亲眼看到了这张配图或心领神会该备注，直接在台词中与画面内容互动吐槽，切勿说“根据备注/文字提示”暴露机制): "${
+          hiddenNotes.length > 0 ? hiddenNotes.join('；') : 'UP主在此处展示了一张与本作相关的配图'
+        }"`
+      : '';
+
     return [
       `### 【出场顺位 #${idx + 1}】 ANIME_ID=${anime.id} 《${anime.title}》`,
       `- UP主最终打分: ${tierDisplay}${deltaStr} | BGM评分: ${anime.bgmScore ?? '未知'} (排名: ${anime.bgmRank ?? '未知'})`,
-      staffParts.length > 0 ? `- 制作班底: ${staffParts.join(' | ')}` : '',
-      item.userText?.trim()
-        ? `- UP主本人的先行吐槽(你需要直接接他的话互动/拆台/附和): "${item.userText.trim()}"`
+      staffParts.length > 0 ? `- 信息和班底: ${staffParts.join(' | ')}` : '',
+      visibleText
+        ? `- UP主本人的先行吐槽(你需要直接接他的话互动/拆台/附和): "${visibleText}"`
         : `- UP主本人未写台词(请由你单人控场锐评这部作品与UP主的给分)`,
+      visualNoteLine,
       buildStudioSubjectContext(anime),
     ]
       .filter(Boolean)
@@ -1399,21 +2150,29 @@ export function buildStudioTimelinePrompt(params: {
     ? formatEmoteListPlaceholder(emoteRules)
     : '   - （当前已关闭漫符特效，请勿输出冒号漫符）';
 
+  const expandRulePlaceholders = (raw: string) =>
+    raw
+      .replace(/\{\{\s*EXPRESSION_LIST\s*\}\}/g, exprListText)
+      .replace(/\{\{\s*EMOTE_LIST\s*\}\}/g, emoteListText)
+      .replace(/\{\{\s*TOTAL_WORKS\s*\}\}/g, String(ordered.length));
+
   const resolvedExpressionBlock =
     enableExpressions || enableEmotes
-      ? expressionRuleTemplate
-          .replace(/\{\{\s*EXPRESSION_LIST\s*\}\}/g, exprListText)
-          .replace(/\{\{\s*EMOTE_LIST\s*\}\}/g, emoteListText)
+      ? expandRulePlaceholders(expressionRuleTemplate)
       : '【输出文本规范】：直接输出纯文本简短口语吐槽（约 30～65 字），无需添加任何中括号表情或漫符标记。';
 
-  const resolvedTimelineBlock = normalizeStudioTimelineRuleTemplate(timelineRuleTemplate).replace(
-    /\{\{\s*TOTAL_WORKS\s*\}\}/g,
-    String(ordered.length),
+  const resolvedTimelineBlock = expandRulePlaceholders(
+    normalizeStudioTimelineRuleTemplate(timelineRuleTemplate),
   );
 
   const bookendContext = (['opening', 'ending'] as const)
     .filter(key => bookends[key].enabled)
-    .map(key => `${key === 'opening' ? '开场' : '收尾'} UP主台词：${bookends[key].userText.trim() || '（留空，由你控场）'}`)
+    .map(key => {
+      const { visibleText, hiddenNotes } = extractUserTextAndHiddenNotes(bookends[key].userText);
+      const label = key === 'opening' ? '开场' : '收尾';
+      const noteSuffix = hiddenNotes.length > 0 ? `（画面/暗注：${hiddenNotes.join('；')}）` : '';
+      return `${label} UP主台词：${visibleText || '（留空，由你控场）'}${noteSuffix}`;
+    })
     .join('\n');
   const bookendRules = [
     '【开场与收尾的额外输出】只为下列启用的段落输出标记；每段用 1～2 句简短台词，可带表情与漫符。',
@@ -1430,7 +2189,9 @@ export function buildStudioTimelinePrompt(params: {
   ].filter(Boolean).join('\n\n');
   return normalizeReportMarkup(assemblePositionedPrompt(companion.prompt || FEIYU_DEFAULT_PERSONA_PROMPT, context, [
     ...enabledWb,
-    { id: 'studio-expression-rules', title: '表情差分与漫符规则', enabled: true, ...normalizePromptPlacement(expressionRulePlacement), content: resolvedExpressionBlock },
+    ...(resolvedExpressionBlock.trim()
+      ? [{ id: 'studio-expression-rules', title: '表情差分与漫符规则', enabled: true, ...normalizePromptPlacement(expressionRulePlacement), content: resolvedExpressionBlock }]
+      : []),
     { id: 'studio-timeline-rules', title: '时间线与台词输出规则', enabled: true, ...normalizePromptPlacement(timelineRulePlacement), content: [companion.id === 'studio-feiyu' ? FEIYU_STUDIO_TASK_PROMPT : '', resolvedTimelineBlock, bookendRules].filter(Boolean).join('\n\n') },
   ]));
 }

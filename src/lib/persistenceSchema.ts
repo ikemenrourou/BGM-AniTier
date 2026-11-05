@@ -39,6 +39,8 @@ export const STUDIO_STORAGE_KEYS = {
   BOOKENDS: 'bgm-anitier-studio-bookends-v1',
   SPEECH_SPEED: 'bgm-anitier-studio-speech-speed-v1',
   VOICE_MUTED: 'bgm-anitier-studio-voice-muted-v1',
+  SFX_MUTED: 'bgm-anitier-studio-sfx-muted-v1',
+  STANDEE_SCALE: 'bgm-anitier-studio-standee-scale-v1',
 };
 
 type Field = readonly [string, string, 'text' | 'json'];
@@ -63,7 +65,8 @@ export const STUDIO_FIELDS: readonly Field[] = [
   ['metaCardStyle', STUDIO_STORAGE_KEYS.META_STYLE, 'text'], ['isPoolBlindBox', STUDIO_STORAGE_KEYS.BLIND_POOL, 'json'],
   ['promptRules', STUDIO_STORAGE_KEYS.PROMPT_RULES, 'json'], ['bubbleFontSize', STUDIO_STORAGE_KEYS.BUBBLE_FONT_SIZE, 'json'],
   ['bookends', STUDIO_STORAGE_KEYS.BOOKENDS, 'json'], ['speechSpeed', STUDIO_STORAGE_KEYS.SPEECH_SPEED, 'json'],
-  ['isVoiceMuted', STUDIO_STORAGE_KEYS.VOICE_MUTED, 'json'],
+  ['isVoiceMuted', STUDIO_STORAGE_KEYS.VOICE_MUTED, 'json'], ['isSfxMuted', STUDIO_STORAGE_KEYS.SFX_MUTED, 'json'],
+  ['standeeScale', STUDIO_STORAGE_KEYS.STANDEE_SCALE, 'json'],
 ];
 export const PERSISTED_KEYS = [...BOARD_FIELDS, ...STUDIO_FIELDS].map(([, key]) => key);
 export type StorageValues = Record<string, string>;

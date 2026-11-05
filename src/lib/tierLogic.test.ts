@@ -343,5 +343,16 @@ test('normalizeTierMap unwraps legacy { nextTiers } wrapper and enrichTierMapWit
   assert.equal(enriched['9'][0].title, '玩玩的恋爱关系');
 });
 
+test('createCustomWorkId generates unique negative safe integers across batches', async () => {
+  const { createCustomWorkId } = await import('./tierLogic');
+  const ids = Array.from({ length: 25 }, (_, i) => createCustomWorkId(i));
+  for (const id of ids) {
+    assert.equal(Number.isSafeInteger(id), true);
+    assert.ok(id < 0, `Expected negative ID for custom work, got ${id}`);
+  }
+  assert.equal(new Set(ids).size, ids.length);
+});
+
+
 
 

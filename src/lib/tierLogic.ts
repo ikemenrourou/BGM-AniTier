@@ -96,6 +96,12 @@ export function createEmptyTierMap(): TierMap {
   return map;
 }
 
+let customWorkIdSeq = 0;
+export function createCustomWorkId(index = 0): number {
+  customWorkIdSeq = (customWorkIdSeq + 1) % 1000;
+  return -(Date.now() * 1000 + ((Math.abs(index) * 37 + customWorkIdSeq) % 1000));
+}
+
 export function normalizeTierMap(
   input?: Partial<TierMap> | { nextTiers?: Partial<TierMap> } | null,
 ): TierMap {

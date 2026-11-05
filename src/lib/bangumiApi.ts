@@ -682,6 +682,10 @@ export function compressImageFileToDataUrl(
     reader.onerror = () => reject(new Error('读取图片文件失败'));
     reader.onload = () => {
       const rawDataUrl = String(reader.result || '');
+      if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
+        resolve(rawDataUrl);
+        return;
+      }
       const img = new Image();
       img.onerror = () => resolve(rawDataUrl);
       img.onload = () => {

@@ -102,13 +102,13 @@ export function parseBackup(input: unknown): StorageValues {
       requireValue(Number.isFinite(item.animeId) && Number.isFinite(item.orderIndex) && ALL_TIER_SCORES.includes(item.targetScore), path);
       requireValue(typeof item.userText === 'string' && typeof item.aiRawText === 'string' && isRecord(item.anime), path);
       anime(item.anime, `${path}.anime`);
-      optionalText(item, ['userImage', 'userImageEffect', 'userExpression', 'userEmote'], path);
+      optionalText(item, ['userImage', 'userImageNote', 'userImageEffect', 'userExpression', 'userEmote'], path);
     });
     if (s.userChar !== undefined) { requireValue(isRecord(s.userChar), 'studio.userChar'); character(s.userChar, 'studio.userChar'); }
     if (s.companions !== undefined) { records(s.companions, 'studio.companions', character); requireValue(s.companions.length > 0, 'studio.companions'); }
     optionalText(s, ['selectedCompanionId', 'metaCardStyle'], 'studio');
     for (const name of ['enableExpressions', 'enableEmotes', 'isPoolBlindBox', 'isVoiceMuted']) requireValue(s[name] === undefined || typeof s[name] === 'boolean', `studio.${name}`);
-    for (const name of ['bubbleFontSize', 'speechSpeed']) requireValue(s[name] === undefined || (Number.isFinite(s[name]) && s[name] > 0), `studio.${name}`);
+    for (const name of ['bubbleFontSize', 'speechSpeed', 'standeeScale']) requireValue(s[name] === undefined || (Number.isFinite(s[name]) && s[name] > 0), `studio.${name}`);
     if (s.promptRules !== undefined) {
       requireValue(isRecord(s.promptRules), 'studio.promptRules');
       optionalText(s.promptRules, ['expressionRuleTemplate', 'timelineRuleTemplate'], 'studio.promptRules');
@@ -151,7 +151,7 @@ export function createBackup(values: StorageValues) {
       userChar: DEFAULT_USER_STUDIO_CHARACTER, companions: DEFAULT_STUDIO_AI_COMPANIONS,
       selectedCompanionId: 'studio-feiyu', enableExpressions: true, enableEmotes: true,
       metaCardStyle: 'wide-feather', isPoolBlindBox: false, promptRules: DEFAULT_STUDIO_PROMPT_RULES_CONFIG,
-      bubbleFontSize: 13.5, speechSpeed: 1, isVoiceMuted: false, bookends: normalizeStudioBookends(),
+      bubbleFontSize: 17, standeeScale: 1.15, speechSpeed: 1, isVoiceMuted: false, bookends: normalizeStudioBookends(),
       ...storageToFields(values, STUDIO_FIELDS),
     },
   };

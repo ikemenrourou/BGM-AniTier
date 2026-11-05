@@ -96,7 +96,7 @@ export const TierRow: React.FC<TierRowProps> = ({
     setIsDragOver(false);
     const rawId = e.dataTransfer.getData('text/plain');
     const animeId = Number(rawId);
-    if (!Number.isNaN(animeId) && animeId > 0) {
+    if (Number.isFinite(animeId) && animeId !== 0) {
       onMoveAnime(animeId, score);
     }
   };
@@ -107,7 +107,7 @@ export const TierRow: React.FC<TierRowProps> = ({
     setIsDragOver(false);
     const rawId = e.dataTransfer.getData('text/plain');
     const animeId = Number(rawId);
-    if (!Number.isNaN(animeId) && animeId > 0) {
+    if (Number.isFinite(animeId) && animeId !== 0) {
       onMoveAnime(animeId, score, targetIndex);
     }
   };
@@ -136,8 +136,12 @@ export const TierRow: React.FC<TierRowProps> = ({
           className: 'transition-colors duration-200 border border-white/[0.05]',
           style: {
             backgroundColor: `rgba(18, 20, 28, ${(0.52 * alphaScale).toFixed(2)})`,
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            ...(readOnlyStage
+              ? {}
+              : {
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                }),
           },
         };
       case 'ambient-glass':
@@ -145,10 +149,11 @@ export const TierRow: React.FC<TierRowProps> = ({
         const baseAlpha = 0.18 + 0.36 * alphaScale;
         const edgeAlpha = 0.16 + 0.34 * alphaScale;
         return {
-          className:
-            'border border-white/[0.07] shadow-[0_16px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.07)] transition-all duration-300',
+          className: readOnlyStage
+            ? 'border border-white/[0.06] transition-all duration-300'
+            : 'border border-white/[0.07] shadow-[0_16px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.07)] transition-all duration-300',
           style: {
-            ...(readOnlyStage ? { boxShadow: '0 10px 22px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.07)' } : {}),
+            ...(readOnlyStage ? { boxShadow: '0 10px 22px rgba(0,0,0,0.28)' } : {}),
             background: primaryPalette
               ? `radial-gradient(125% 155% at 18% 48%, ${primaryPalette.glowRgba(
                   0.28 * alphaScale,
@@ -162,8 +167,12 @@ export const TierRow: React.FC<TierRowProps> = ({
                 ).toFixed(3)}) 0%, rgba(255,255,255,0.012) 100%), rgba(18, 17, 21, ${baseAlpha.toFixed(
                   2,
                 )})`,
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            ...(readOnlyStage
+              ? {}
+              : {
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                }),
           },
         };
       }
@@ -281,7 +290,7 @@ export const TierRow: React.FC<TierRowProps> = ({
                 readOnlyStage ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
               } transition-all duration-500 ${
                 isStageActiveCard
-                  ? stageEntryPending ? 'invisible z-30 scale-[1.14]' : 'z-30 scale-[1.14]'
+                  ? stageEntryPending ? 'pointer-events-none z-30 scale-[1.14]' : 'z-30 scale-[1.14]'
                   : isStageDimmedCard
                   ? 'opacity-75 scale-[0.96]'
                   : isTagMatched
@@ -341,7 +350,8 @@ export const TierRow: React.FC<TierRowProps> = ({
                 <img
                   src={anime.cover}
                   alt={anime.title}
-                  loading="lazy"
+                  loading={readOnlyStage ? 'eager' : 'lazy'}
+                  decoding="async"
                   referrerPolicy="no-referrer"
                   className={`w-full h-full object-cover ${readOnlyStage ? '' : 'transition-transform duration-300 group-hover/card:scale-105'}`}
                 />

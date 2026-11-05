@@ -262,7 +262,8 @@ export function playEmotePopSound(emote: BlueArchiveEmoteId, muted = false): voi
 }
 
 /**
- * Plays a soft tactile stamp/chime when the work lands in its Tier Row and reveals its score on the Top-Right Meta Card.
+ * Plays a tactile stamp/chime when the work lands in its Tier Row and reveals its score on the Top-Right Meta Card.
+ * Differentiates between high scores (>=8.5), normal scores (6..8), and low scores (<6).
  */
 export function playScoreRevealChime(score: number, muted = false): void {
   if (muted) return;
@@ -270,23 +271,71 @@ export function playScoreRevealChime(score: number, muted = false): void {
   if (!ctx) return;
   const now = ctx.currentTime;
 
-  const isHigh = score >= 9;
-  const notes = isHigh ? [523.25, 659.25, 783.99, 1046.5] : [440, 554.37, 659.25];
+  if (score >= 8.5) {
+    // High score (9-10 / S): celebratory bright ascending arpeggio
+    const notes = [523.25, 659.25, 783.99, 987.77, 1046.5];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const start = now + i * 0.042;
+      osc.type = i === notes.length - 1 ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(freq, start);
 
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(0.075, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.24);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.26);
+    });
+    return;
+  }
+
+  if (score < 6) {
+    // Low score (<=5 / C-D): playful comedic descending motif with slight pitch droop
+    const notes = [349.23, 293.66, 233.08];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const start = now + i * 0.065;
+      const dur = i === notes.length - 1 ? 0.24 : 0.16;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+      if (i === notes.length - 1) {
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.88, start + dur);
+      }
+
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(0.06, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.02);
+    });
+    return;
+  }
+
+  // Normal / mid score (6-8 / A-B): warm two-note confirmation chime
+  const notes = [440, 587.33];
   notes.forEach((freq, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    const start = now + i * 0.045;
+    const start = now + i * 0.05;
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, start);
 
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.linearRampToValueAtTime(isHigh ? 0.075 : 0.055, start + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+    gain.gain.linearRampToValueAtTime(0.058, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(start);
-    osc.stop(start + 0.24);
+    osc.stop(start + 0.22);
   });
 }
+

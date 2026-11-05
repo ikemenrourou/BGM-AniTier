@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { TierGradingSystem, TierRowStyle, TierScore } from '../types';
 import { ALL_TIER_SCORES, LETTER_TIER_SCORES, formatTierLabel } from '../lib/tierLogic';
+import { compressImageFileToDataUrl } from '../lib/bangumiApi';
 import { GRADIENT_THEMES } from '../lib/themes';
 
 interface SettingsDrawerProps {
@@ -117,17 +118,18 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
     onSelectTheme(pick.id);
   };
 
-  const handleBgImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBgImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        onChangeCustomBgUrl(reader.result);
+    try {
+      const dataUrl = await compressImageFileToDataUrl(file, 1920, 1080, 0.85);
+      if (dataUrl) {
+        onChangeCustomBgUrl(dataUrl);
         onToggleUseCustomBg(true);
       }
-    };
-    reader.readAsDataURL(file);
+    } finally {
+      e.target.value = '';
+    }
   };
 
   return (
@@ -592,7 +594,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                 <span>All-in-One 全量打包备份</span>
               </div>
               <p className="text-[11px] text-white/50 leading-relaxed">
-                包含排行榜、候选池、漫评、背景、AI 配置，以及小剧场台本、角色差分、配图、Prompt、开场收尾与语速。尽量内嵌图片；无法下载的外链会保留地址并提示。备份含 Token 和 API Key，请勿公开分享。
+                包含排行榜、候选池、漫评、背景、AI 配置，以及小剧场台本、角色差分、配图、Prompt、开场收尾与语速。本地上传的图片自动内嵌保存，外链图片保留原始地址。备份含 Token 和 API Key，请勿公开分享。
               </p>
               <p data-testid="backup-storage-status" className="text-[11px] text-white/70">{storageStatus}</p>
               <div className="grid grid-cols-2 gap-2">
@@ -606,7 +608,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                   {isExportingBackup ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>正在打包图片...</span>
+                      <span>正在导出备份...</span>
                     </>
                   ) : (
                     <>

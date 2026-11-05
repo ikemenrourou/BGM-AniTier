@@ -91,7 +91,7 @@ export const UnrankedPoolSidebar: React.FC<UnrankedPoolSidebarProps> = ({
 
     const rawId = e.dataTransfer.getData('text/plain');
     const animeId = Number(rawId);
-    if (!Number.isNaN(animeId) && animeId > 0) {
+    if (Number.isFinite(animeId) && animeId !== 0) {
       onDropAnimeIntoPool(animeId);
     }
   };
@@ -106,7 +106,7 @@ export const UnrankedPoolSidebar: React.FC<UnrankedPoolSidebarProps> = ({
     setIsDragOver(false);
     const rawId = e.dataTransfer.getData('text/plain');
     const animeId = Number(rawId);
-    if (!Number.isNaN(animeId) && animeId > 0) {
+    if (Number.isFinite(animeId) && animeId !== 0) {
       onDropAnimeIntoPool(animeId, index);
     }
   };

@@ -1489,7 +1489,7 @@ export const PosterWallModal: React.FC<PosterWallModalProps> = ({
 
             {/* Poster Footer Signature */}
             <div className="relative z-10 mt-8 pt-4 border-t border-white/[0.07] flex items-center justify-between text-[11px] text-white/40 font-mono">
-              <span>BGM ANITIER · PERSONAL VISUAL ARCHIVE</span>
+              <span>BGM ANITIER · github.com/ikemenrourou/BGM-AniTier</span>
               <span>
                 {new Date().toISOString().slice(0, 10)} · {categoryCounts.total} WORKS ARCHIVED
               </span>
