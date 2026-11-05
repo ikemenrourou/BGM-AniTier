@@ -919,37 +919,30 @@ export function App() {
     }
   };
 
-  const handleResetPromptsAndWorldBooks = () => {
-    const nextAiConfig: AIConfig = {
-      ...aiConfig,
-      worldBookEntries: DEFAULT_WORLD_BOOK_ENTRIES.map(e => ({ ...e })),
-      personas: DEFAULT_PERSONAS.map(p => ({ ...p })),
-      d0Prompt: '',
-    };
-    setAiConfig(nextAiConfig);
-    try {
-      appStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(nextAiConfig));
-      appStorage.setItem(
-        STUDIO_STORAGE_KEYS.PROMPT_RULES,
-        JSON.stringify(DEFAULT_STUDIO_PROMPT_RULES_CONFIG),
-      );
-      appStorage.setItem(
-        STUDIO_STORAGE_KEYS.COMPANIONS,
-        JSON.stringify(DEFAULT_STUDIO_AI_COMPANIONS),
-      );
-    } catch {
-      // ignore
-    }
-    setSettingsState(prev => ({ ...prev, isOpen: false }));
-    showToast('已重置全局世界书、人设与小剧场规则模板为最新默认配置');
-  };
-
-  const handleClearAllData = () => {
+  const handleResetToDefault = () => {
+    // 1. Reset board, unranked pool, comments, and reports
     setTiers(createEmptyTierMap());
     setUnrankedPool([]);
     setComments([]);
     setSavedReport('');
     setHighlightedTag(null);
+
+    // 2. Reset styles and appearance to defaults
+    setGradingSystem('numeric');
+    setVisibleTiers([...DEFAULT_VISIBLE_TIERS]);
+    setExportHideEmptyTiers(true);
+    setShowTitles(true);
+    setActiveThemeId(getInitialThemeId(null, null));
+    setTierRowStyle('ambient-glass');
+    setTierRowOpacity(82);
+    setCustomBgUrl('');
+    setUseCustomBg(false);
+    setEnableParticles(false);
+    setEnableGlow(true);
+    setEnableGlassBlur(true);
+    setGlassBlurPx(10);
+
+    // 3. Reset WorldBooks, personas, and prompts to defaults (keep apiKey and bgm token untouched)
     const nextAiConfig: AIConfig = {
       ...aiConfig,
       worldBookEntries: DEFAULT_WORLD_BOOK_ENTRIES.map(e => ({ ...e })),
@@ -957,7 +950,26 @@ export function App() {
       d0Prompt: '',
     };
     setAiConfig(nextAiConfig);
+
     try {
+      appStorage.setItem(STORAGE_KEYS.TIERS, JSON.stringify(createEmptyTierMap()));
+      appStorage.setItem(STORAGE_KEYS.UNRANKED_POOL, JSON.stringify([]));
+      appStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify([]));
+      appStorage.setItem(STORAGE_KEYS.TASTE_REPORT, '');
+      appStorage.setItem(STORAGE_KEYS.REPORT_CHAT, JSON.stringify([]));
+      appStorage.setItem(STORAGE_KEYS.GRADING_SYSTEM, 'numeric');
+      appStorage.setItem(STORAGE_KEYS.VISIBLE_TIERS, JSON.stringify(DEFAULT_VISIBLE_TIERS));
+      appStorage.setItem(STORAGE_KEYS.EXPORT_HIDE_EMPTY, 'true');
+      appStorage.setItem(STORAGE_KEYS.SHOW_TITLES, 'true');
+      appStorage.setItem(STORAGE_KEYS.THEME, getInitialThemeId(null, null));
+      appStorage.setItem(STORAGE_KEYS.TIER_ROW_STYLE, 'ambient-glass');
+      appStorage.setItem(STORAGE_KEYS.TIER_ROW_OPACITY, '82');
+      appStorage.setItem(STORAGE_KEYS.CUSTOM_BG, '');
+      appStorage.setItem(STORAGE_KEYS.USE_CUSTOM_BG, 'false');
+      appStorage.setItem(STORAGE_KEYS.PARTICLES, 'false');
+      appStorage.setItem(STORAGE_KEYS.GLOW, 'true');
+      appStorage.setItem(STORAGE_KEYS.GLASS_BLUR, 'true');
+      appStorage.setItem(STORAGE_KEYS.GLASS_BLUR_PX, '10');
       appStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(nextAiConfig));
       appStorage.setItem(STUDIO_STORAGE_KEYS.SCRIPT, JSON.stringify([]));
       appStorage.setItem(
@@ -972,7 +984,7 @@ export function App() {
       // ignore
     }
     setSettingsState(prev => ({ ...prev, isOpen: false }));
-    showToast('已清空排行榜并恢复默认世界书与提示词配置（API 与 BGM Token 保留）');
+    showToast('已恢复默认设置（API 密钥与 Bangumi 凭证已保留）');
   };
 
   const activeTheme = getThemeById(activeThemeId);
@@ -1441,8 +1453,7 @@ export function App() {
         onExportJson={handleExportJson}
         isExportingBackup={isExportingBackup}
         onImportJsonFile={handleImportJsonFile}
-        onResetPromptsAndWorldBooks={handleResetPromptsAndWorldBooks}
-        onClearAllData={handleClearAllData}
+        onResetToDefault={handleResetToDefault}
       />
     </div>
   );

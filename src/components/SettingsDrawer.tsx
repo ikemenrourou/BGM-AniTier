@@ -59,8 +59,7 @@ interface SettingsDrawerProps {
   onExportJson: (includeCredentials?: boolean) => void;
   isExportingBackup?: boolean;
   onImportJsonFile: (file: File) => void;
-  onResetPromptsAndWorldBooks?: () => void;
-  onClearAllData: () => void;
+  onResetToDefault: () => void;
 }
 
 export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
@@ -95,8 +94,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
   onExportJson,
   isExportingBackup = false,
   onImportJsonFile,
-  onResetPromptsAndWorldBooks,
-  onClearAllData,
+  onResetToDefault,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgUploadInputRef = useRef<HTMLInputElement>(null);
@@ -663,26 +661,14 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
               }
             </div>
 
-            {onResetPromptsAndWorldBooks && (
-              <button
-                type="button"
-                data-testid="reset-prompts-and-worldbooks-btn"
-                onClick={onResetPromptsAndWorldBooks}
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.14] text-xs font-semibold text-white transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>重置世界书、人设与小剧场规则模板为默认</span>
-              </button>
-            )}
-
             <button
               type="button"
-              data-testid="clear-all-data-btn"
-              onClick={onClearAllData}
-              className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/25 text-xs font-medium text-rose-200 transition-colors cursor-pointer"
+              data-testid="reset-to-default-btn"
+              onClick={onResetToDefault}
+              className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/25 text-xs font-semibold text-rose-200 transition-colors cursor-pointer"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>清空排行榜数据并恢复默认配置</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>恢复默认设置</span>
             </button>
           </div>
         </div>
