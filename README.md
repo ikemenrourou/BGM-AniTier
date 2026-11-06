@@ -16,7 +16,6 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=fff)](https://www.typescriptlang.org/)
 [![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-live-F38020?logo=cloudflare&logoColor=fff)](https://bgm-anitier.pages.dev/)
-[![GitHub release](https://img.shields.io/github/v/release/ikemenrourou/BGM-AniTier?color=F38020&label=release)](https://github.com/ikemenrourou/BGM-AniTier/releases)
 
 </div>
 
